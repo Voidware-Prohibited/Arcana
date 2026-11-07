@@ -22,9 +22,14 @@
      <a href="https://liberapay.com/colorindarkness"><img alt="Support me on Liberapay" src="https://img.shields.io/badge/support_me_on-liberapay-yellow?link=https%3A%2F%2Fliberapay.com%2Fcolorindarkness%2F"></a>
 </p>
 
-> [!NOTE]  Following the acquisition of GitHub by Microsoft, VOIDWARE Prohibited has taken the principled acion and have begun primarily hosting our code and content on Codeberg. Mirrors will still be maintained on GitHub and GitLab.
+> [!NOTE]  
+> VOIDWARE Prohibited has begun hosting code and content primarily on Codeberg. Mirrors will still be maintained on GitHub and GitLab.
 
 A multiplayer Character Interaction System utilizing Gameplay Ability System (GAS), Contextual Animation . Arcana provides a feature rich, multiplayer-ready, cinematic, extensible Character Interaction system for modern games.
+
+World Paritioning Support.
+
+The use of interfaces creates an abstraction layer to Deserialize and Serialze objects to and from a database via Archon, Aurora or your custom serialzation solution.
 
 Arcana is a part of the [Target Vector](/Voidware-Prohibited/TargetVector/) framework.
 
@@ -33,7 +38,8 @@ Arcana is a part of the [Target Vector](/Voidware-Prohibited/TargetVector/) fram
 # Introduction
 Granular control over Player and AI Interaction with Gameplay Abilities and Volumes.
 
-> [!WARNING]  _Arcana is under heavy development, many features may not be finished or production-ready. Use at your own risk._ 
+> [!WARNING]
+> _Arcana is under heavy development, many features may not be finished or production-ready. Use at your own risk._ 
 
 # Features
 - Arcana World Subsystem.
@@ -96,25 +102,25 @@ The full [Getting Started guide](../..//wiki/GettingStarted/) is available in th
 
 **Content Overview**
 ```
-(root)/                                # Demo Game Mode and Game State
-├──AbilitySystem/ 
-    ├── GameplayAbilities/ 
-├──Actors/ 
-    ├── ArcanaLevelActor               # Arcana Level Actor.
-├──Characters/                         # Demo ArcanaCharacter Class.
-    ├── Input                          # ArcanaCharacter Input.
-├──Data/                               
-    ├── ArcanaVirtualizedSpawnTypes    # Arcana Virtualized Spawn Types.
-├──Interfaces/ 
-    ├── ArcanaWorldActorInterface      # World Actor Interface.
-├──StateTree/ 
-├──Subsystems/ 
-    ├── ArcanaWorldSubsystem           # World Subsystem.
-├──Settings/
-├──Levels/                             # Demo Level(s).
-├──Utility/                            # Log.
+📁 (root)/                                # Demo Game Mode and Game State
+├──📁 AbilitySystem/ 
+    ├──📁 GameplayAbilities/              # Gameplay Abilities
+├──📁 Actors/ 
+    ├──📄 ArcanaWorldActor                # Arcana Smart Object Interactable Actor.
+    ├──📄 ArcanaWorldVolume               # Arcana Spawning Volume.
+├──📁 Characters/                         # Demo ArcanaCharacter Class.
+    ├──📁 Input                           # ArcanaCharacter Input.
+├──📁 Data/                               
+    ├──📄 ArcanaVirtualizedSpawnTypes     # Arcana Virtualized Spawn Types.
+├──📁 Interfaces/ 
+    ├──📃 ArcanaWorldActorInterface       # World Actor Interface.
+├──📁 StateTree/ 
+├──📁 Subsystems/ 
+    ├──⚙️ ArcanaWorldSubsystem            # World Subsystem.
+├──📁 Settings/
+├──📁 Levels/                             # Demo Level(s).
+├──📁 Utility/                            # Log.
 ```
-
 
 # Settings
 For detailed descriptions all Settings, please consult the [Arcana Wiki](../..//wiki/) or the [Arcana Documentation](https://arcana.voidwarex.com/docs/).
@@ -168,7 +174,7 @@ Any git submodules are covered by their respective licenses. Content listed in t
 Üriel is an Independent Developer, Music Producer, and Artist based out of the California Bay Area. 
 
 Specializing in C++, C#, ECMA/Javascript, DevOps, SysAdmin and Automation.
-Founder of @Voidware-Prohibited, @Voidware-Tactical and @PortlandAssembly. [Twitter](https://x.com/colorindarkness). [Dev Profile](https://dev.to/colorindarkness). [Request Consultation](https://x.com/colorindarkness)
+Founder of @Voidware-Prohibited, @Xiphos-Tactical and @PortlandAssembly. [Twitter](https://x.com/colorindarkness). [Dev Profile](https://dev.to/colorindarkness). [Request Consultation](https://x.com/colorindarkness)
 
 # Attributions
 Please view [ATTRIBUTIONS](ATTRIBUTIONS.md)
