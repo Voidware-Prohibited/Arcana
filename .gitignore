@@ -85,3 +85,9 @@ LocalDerivedDataCache/*
 
 # Generated Documentation files
 docs/*
+!docs/ATTRIBUTIONS.md
+!docs/CODE_OF_CONDUCT.md
+!docs/CONTRIBUTING.md
+!docs/GOVERNANCE.md
+!docs/SECURITY.md
+!docs/SocialBanner.png
