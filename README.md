@@ -43,6 +43,7 @@ Granular control over Player and AI Interaction with Gameplay Abilities and Volu
 - Arcana World Actor Interface.
 - Arcana World Volume Base class.
 - Arcana World Volume Interface.
+- Aurora and Archon Serialization and Deserialization Support.
 
 ## Demo Content
 - Demo Player Character.
@@ -55,7 +56,7 @@ _Not available on Fab. Please perform Manual Installation_
 ## Manual Installation
 
 ### Latest Release
-_No Releases yet. Plesae Compile From Source Code_
+_No Releases yet. Please Compile From Source Code_
 
 1. Install and setup all [Dependencies](#dependencies) (if required).
 2. Download the [Latest Release](/../releases/latest).
