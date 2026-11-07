@@ -23,7 +23,7 @@
 </p>
 
 > [!NOTE]  
-> VOIDWARE Prohibited has begun hosting code and content primarily on Codeberg. Mirrors will still be maintained on GitHub and GitLab.
+> VOIDWARE Prohibited has begun hosting code and content primarily on [Codeberg](https://codeberg.org/Voidware-Prohibited/). Mirrors will still be maintained on [GitHub](https://github.com/Voidware-Prohibited/Arcana/) and [GitLab](https://gitlab.com/Voidware-Prohibited/Arcana/).
 
 A multiplayer Character Interaction System utilizing Gameplay Ability System (GAS), Contextual Animation . Arcana provides a feature rich, multiplayer-ready, cinematic, extensible Character Interaction system for modern games.
 
