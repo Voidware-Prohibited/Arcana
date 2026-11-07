@@ -1,0 +1,3 @@
+include:
+  - local: 'ue-plugin-ci.yml'
+  - local: 'changelog.yml'
