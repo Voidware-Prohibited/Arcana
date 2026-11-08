@@ -1,21 +1,32 @@
 $theme-color: "snowwhite";
 $brand-color: "mediumpurple";
 
+#top {
+    height: 63.84px;
+    margin: 0 60px;
+}
+
 #title-area {
     flex-grow: 5!important;
+    margin-left: 60px;
 }
 
 #main-nav {
     flex-grow: 0!important;
+    maargin-right: 60px;
 }
 
 #projectname{
+    font-family: Helvetica, Arial, Oswald, sans-serif;
+    font-size: 23.1px;
+    font-weight: 600;
     flex-grow: 5!important;
+    letter-spacing: -1px
 }
 
 #projectname a, #projectname a:link, #projectname a:active, #projectname a:visited, #projectname a:focus{
 	text-transform: uppercase;
-	color: $brand-color;
+	color: $brand-color!important;
 }
 /* Style and alignment for your custom navigation links */
 .custom-top-links {
@@ -26,6 +37,10 @@ $brand-color: "mediumpurple";
 
 .custom-top-links a, .custom-top-links a:link, .custom-top-links a:active, .custom-top-links a:visited, .custom-top-links a:focus {
     color: black;
+    font-family: Helvetica, Arial, Oswald, sans-serif;
+    font-kerning: normal;
+    font-size: 15.75px;
+    line-height: 25.2px
     font-weight: 500;
     transition: color 0.2s ease-in-out;
 }
