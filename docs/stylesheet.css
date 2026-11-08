@@ -3,7 +3,11 @@
 }
 
 #main-nav {
-  flex-grow: 0!important;
+    flex-grow: 0!important;
+}
+
+#projectname{
+    flex-grow: 5!important;
 }
 
 #projectname a, #projectname a:active{
