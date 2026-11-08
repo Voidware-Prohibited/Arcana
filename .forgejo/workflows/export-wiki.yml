@@ -20,18 +20,19 @@ jobs:
 
       - name: Setup mdBook
         run: |
-          # Fetch the latest version string safely
-          MDBOOK_VERSION=$(curl -s https://github.com | grep -oP '"tag_name": "\K[^"]+')
-          echo "Installing mdBook version: ${MDBOOK_VERSION}"
+          # 1. Use a hardcoded stable version to guarantee a reliable download link
+          VERSION="v0.4.40"
+          echo "Fetching mdBook version: ${VERSION}"
           
-          # Create a local bin directory in the runner's workspace
-          mkdir -p bin
+          # 2. Build local binary directories safely in user space
+          mkdir -p build_bin
           
-          # Download and unpack mdbook directly into the workspace path
-          curl -sSL "https://github.com{MDBOOK_VERSION}/mdbook-${MDBOOK_VERSION}-x86_64-unknown-linux-gnu.tar.gz" | tar -xz -C bin/
+          # 3. Download the specific static linux binary
+          wget -qO- "https://github.com{VERSION}/mdbook-${VERSION}-x86_64-unknown-linux-gnu.tar.gz" | tar -xz -C build_bin/
           
-          # Append the temporary bin path to the environment loop for subsequent steps
-          echo "$(pwd)/bin" >> $GITHUB_PATH
+          # 4. Make it executable and map it to the active runner pathway
+          chmod +x build_bin/mdbook
+          echo "$(pwd)/build_bin" >> $GITHUB_PATH
 
       - name: Initialize and Build mdBook
         run: |
