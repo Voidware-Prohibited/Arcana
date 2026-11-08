@@ -18,8 +18,8 @@ jobs:
       # 2. Install Doxygen and dependencies
       - name: Install Doxygen
         run: |
-          sudo apt-get update
-          sudo apt-get install -y doxygen graphviz
+          apt-get update
+          apt-get install -y doxygen graphviz
 
       # 3. Generate HTML Documentation
       # This creates the folder even if it is ignored in your git repo
