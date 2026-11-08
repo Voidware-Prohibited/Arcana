@@ -1,5 +1,5 @@
 /* Style and alignment for your custom navigation links */
-#custom-top-links {
+.custom-top-links {
     display: flex;
     float: right;
     gap: 15px;
@@ -7,14 +7,14 @@
     align-items: center;
 }
 
-#custom-top-links a {
+.custom-top-links a {
     color: var(--page-foreground-color); /* Matches Doxygen Awesome variable */
     text-decoration: underline;
     font-weight: 500;
     transition: color 0.2s ease-in-out;
 }
 
-#custom-top-links a:hover {
+.custom-top-links a:hover {
     color: var(--primary-color); /* Changes to theme accent on hover */
 }
 
