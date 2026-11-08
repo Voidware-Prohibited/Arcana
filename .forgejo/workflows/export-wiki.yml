@@ -1,0 +1,66 @@
+name: Export Wiki to HTML and Push
+on:
+  push:
+    branches:
+      - main # Change to your default branch if different
+
+jobs:
+  deploy-wiki:
+    runs-on: linux
+    steps:
+      - name: Checkout Main Repository
+        uses: actions/checkout@v4
+
+      - name: Checkout Local Forgejo Wiki
+        run: |
+          # Forgejo wikis are just git repos named <repo-name>.wiki.git
+          # We clone the local wiki repository using the internal/local tokens
+          git clone http://${{ secrets.GITHUB_TOKEN }}@localhost:3000/${{ github.repository }}.wiki.git local_wiki
+        continue-on-error: true # Prevents failure if the wiki is completely empty
+
+      - name: Convert Markdown to HTML
+        run: |
+          mkdir -p html_output/wiki
+          # Loop through markdown files and convert them
+          # Using a lightweight python or pandoc approach common on standard linux runners
+          if [ -d "local_wiki" ]; then
+            cd local_wiki
+            for f in *.md; do
+              if [ -f "$f" ]; then
+                filename=$(basename "$f" .md)
+                # Simple conversion wrap (replace with your preferred SSG if needed)
+                echo "<html><head><title>$filename</title></head><body>" > "../html_output/wiki/${filename}.html"
+                cat "$f" >> "../html_output/wiki/${filename}.html"
+                echo "</body></html>" >> "../html_output/wiki/${filename}.html"
+              fi
+            done
+            cd ..
+          else
+            echo "No wiki files found to convert."
+          fi
+
+      - name: Push to Remote Repository
+        env:
+          REMOTE_REPO: ${{ vars.GH_REPO }}
+          GH_TOKEN: ${{ secrets.GH_PAT }}
+        run: |
+          # Clone the target deployment repo (GitHub Pages repo)
+          git clone https://${GH_TOKEN}@${REMOTE_REPO} remote_dest
+          
+          # Ensure target directory exists and copy HTML structure
+          mkdir -p remote_dest/wiki
+          cp -r html_output/wiki/* remote_dest/wiki/
+          
+          # Commit and Push changes
+          cd remote_dest
+          git config user.name "Forgejo Action CI"
+          git config user.email "ci@forgejo.local"
+          git add wiki/
+          
+          # Only commit and push if changes actually exist
+          if git diff --cached --quiet; then
+            echo "No changes to deploy."
+          else
+            git commit -m "Automated wiki HTML sync from Forgejo"
+            git push origin main
+          fi
