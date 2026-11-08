@@ -8,6 +8,7 @@
 
 #projectname a{
 	text-transform: uppercase;
+	color: var(--header-foreground);
 }
 /* Style and alignment for your custom navigation links */
 .custom-top-links {
@@ -19,13 +20,13 @@
 }
 
 .custom-top-links a {
-    color: var(--page-foreground-color); /* Matches Doxygen Awesome variable */
+    color: var(--header-foreground); /* Matches Doxygen Awesome variable */
     font-weight: 500;
     transition: color 0.2s ease-in-out;
 }
 
 .custom-top-links a:hover {
-    color: var(--primary-color); /* Changes to theme accent on hover */
+    color: var(--header-foreground); /* Changes to theme accent on hover */
     text-decoration: underline;
 }
 
