@@ -16,11 +16,10 @@
 }
 /* Style and alignment for your custom navigation links */
 .custom-top-links {
-    display: flex;
-    float: right;
     gap: 15px;
     margin-right: 20px; /* Spacing from the very right edge */
     align-items: center;
+    flex-grow: 5!important;
 }
 
 .custom-top-links a {
