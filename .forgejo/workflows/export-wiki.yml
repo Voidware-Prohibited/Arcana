@@ -40,31 +40,38 @@ jobs:
 
       - name: Initialize and Build mdBook
         run: |
-          # Create a basic mdBook configuration if it doesn't exist
+          # 1. mdBook defaults to looking inside a 'src' subdirectory for markdown files
+          mkdir -p local_wiki/src
+
+          # 2. Create the configuration file at the root of the wiki directory
           if [ ! -f local_wiki/book.toml ]; then
             cat <<EOF > local_wiki/book.toml
           [book]
-          title = "${{ github.repository }} Wiki"
-          authors = ["Uriel Ballinas, VOIDWARE Prohibited"]
+          title = "Project Wiki"
+          author = "Forgejo Actions"
           language = "en"
+          src = "src"
 
           [output.html]
-          git-repository-url = "https://${{ vars.GHPAGES_REPO }}"
+          git-repository-url = "https://${{ vars.REMOTE_GITHUB_REPO }}"
           site-url = "/wiki/"
           EOF
           fi
 
-          # Generate the SUMMARY.md dynamically if it doesn't exist to map wiki files
-          if [ ! -f local_wiki/SUMMARY.md ]; then
-            echo "# Summary" > local_wiki/SUMMARY.md
-            find local_wiki -name "*.md" ! -name "SUMMARY.md" -exec basename {} .md \; | while read -r file; do
+          # 3. Move flat markdown files into the expected src/ folder if they are at the root
+          find local_wiki -maxdepth 1 -name "*.md" -exec mv {} local_wiki/src/ \;
+
+          # 4. Generate the SUMMARY.md layout file inside the src/ folder
+          if [ ! -f local_wiki/src/SUMMARY.md ]; then
+            echo "# Summary" > local_wiki/src/SUMMARY.md
+            find local_wiki/src -name "*.md" ! -name "SUMMARY.md" -exec basename {} .md \; | while read -r file; do
               # Clean up naming formatting for the sidebar links
               name=$(echo "$file" | tr '-' ' ' | tr '_' ' ')
-              echo "- [$name]($file.md)" >> local_wiki/SUMMARY.md
+              echo "- [$name]($file.md)" >> local_wiki/src/SUMMARY.md
             done
           fi
 
-          # Build the markdown files into static HTML
+          # 5. Build the production HTML using the corrected workspace layout
           mdbook build local_wiki --dest-dir build_output
 
       - name: Deploy to Remote GitHub Pages Repository
