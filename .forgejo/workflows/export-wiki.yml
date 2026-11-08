@@ -40,10 +40,8 @@ jobs:
 
       - name: Initialize and Build mdBook
         run: |
-          # 1. mdBook defaults to looking inside a 'src' subdirectory for markdown files
           mkdir -p local_wiki/src
-
-          # 2. Create the configuration file at the root of the wiki directory
+          
           if [ ! -f local_wiki/book.toml ]; then
             cat <<EOF > local_wiki/book.toml
           [book]
@@ -58,56 +56,46 @@ jobs:
           EOF
           fi
 
-          # 3. Move flat markdown files into the expected src/ folder if they are at the root
+          # Ensure files are inside src/
           find local_wiki -maxdepth 1 -name "*.md" -exec mv {} local_wiki/src/ \;
 
-          # 4. Generate the SUMMARY.md layout file inside the src/ folder
           if [ ! -f local_wiki/src/SUMMARY.md ]; then
             echo "# Summary" > local_wiki/src/SUMMARY.md
             find local_wiki/src -name "*.md" ! -name "SUMMARY.md" -exec basename {} .md \; | while read -r file; do
-              # Clean up naming formatting for the sidebar links
               name=$(echo "$file" | tr '-' ' ' | tr '_' ' ')
               echo "- [$name]($file.md)" >> local_wiki/src/SUMMARY.md
             done
           fi
 
-          # 5. Build the production HTML using the corrected workspace layout
-          mdbook build local_wiki --dest-dir build_output
+          # Force mdbook to build to a clean absolute path outside the wiki directory
+          mkdir -p ${{ github.workspace }}/html_compiled
+          mdbook build local_wiki --dest-dir ${{ github.workspace }}/html_compiled
 
       - name: Deploy to Remote GitHub Pages Repository
         env:
           GITHUB_TOKEN: ${{ secrets.GH_PAT }}
           REMOTE_REPO: ${{ vars.GHPAGES_REPO }}
         run: |
-          # Configure basic Git identification
           git config --global user.name "forgejo-actions[bot]"
           git config --global user.email "forgejo-actions[bot]@://github.com"
 
-          # Clone the remote GitHub target repository safely
           git clone "https://x-access-token:${GITHUB_TOKEN}@${REMOTE_REPO}" github_repo
           
-          # Ensure target subdirectory path exists and clean old wiki deployment assets
           mkdir -p github_repo/wiki
           rm -rf github_repo/wiki/*
 
-          # Copy compiled HTML output directly from the verified mdBook output folder
-          cp -r local_wiki/build_output/* github_repo/wiki/
+          # Copy directly from the verified absolute output directory
+          cp -r ${{ github.workspace }}/html_compiled/* github_repo/wiki/
 
-          # Commit and Push updates back to the remote GitHub repository
           cd github_repo
           
-          # Initialize branch tracking if the remote repository was completely empty
-          if [ ! -d ".git" ]; then
-            echo "Git initialization failed."
-            exit 1
-          fi
+          # Initialize branch context if the remote target is completely blank
+          git checkout -b main 2>/dev/null || git checkout main
           
           git add wiki/
           if git diff-index --quiet HEAD; then
             echo "No wiki changes detected. Skipping push."
           else
-            # Ensure an active branch named 'main' is forced if pushing to a fresh repository
-            git checkout -b main 2>/dev/null || git checkout main
             git commit -m "Automated synchronization update: Forgejo wiki to /wiki subfolder"
             git push origin main
           fi
