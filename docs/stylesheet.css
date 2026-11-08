@@ -22,3 +22,7 @@
     display: none !important;
 }
 */
+
+ul.main-menu li:not(#searchBoxPos2) {
+    display: none!important;
+}
