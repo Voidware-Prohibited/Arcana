@@ -17,7 +17,8 @@
     color: var(--primary-color); /* Changes to theme accent on hover */
 }
 
-/* Optional: Force-hide the old navigation menu row if it still occupies space */
+/* Optional: Force-hide the old navigation menu row if it still occupies space 
 #main-nav {
     display: none !important;
 }
+*/
