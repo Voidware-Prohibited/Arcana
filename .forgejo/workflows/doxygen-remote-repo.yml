@@ -35,7 +35,7 @@ jobs:
           
           # Optional: Include interactive extensions (like the Dark Mode toggle)
           echo "HTML_EXTRA_FILES       = doxygen-awesome-css/doxygen-awesome-darkmode-toggle.js" >> Doxyfile
-          # echo "HTML_HEADER            = doxygen-awesome-css/doxygen-custom/header.html" >> Doxyfile 
+          echo "HTML_HEADER            = docs/header.html" >> Doxyfile 
 
           # Run doxygen as usual
           doxygen Doxyfile

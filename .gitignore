@@ -91,3 +91,6 @@ docs/*
 !docs/GOVERNANCE.md
 !docs/SECURITY.md
 !docs/SocialBanner.png
+!docs/header.html
+!docs/footer.html
+!docs/stylesheet.css
