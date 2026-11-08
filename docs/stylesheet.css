@@ -16,17 +16,18 @@ $brand-color: "mediumpurple";
     maargin-right: 60px!important;
 }
 
-#projectname{
-    font-family: Helvetica, Arial, Oswald, sans-serif;
-    font-size: 23.1px;
-    font-weight: 600;
-    flex-grow: 5!important;
-    letter-spacing: -1px;
+#projectname {
+    flex-grow: 5!important;   
 }
 
-#projectname a, #projectname a:link, #projectname a:active, #projectname a:visited, #projectname a:focus{
-	text-transform: uppercase;
-	color: mediumpurple!important;
+#projectname a, #projectname a:link, #projectname a:active, #projectname a:visited, #projectname a:focus, #projectname a:hover{
+    text-transform: uppercase;
+    font-family: Helvetica, Arial, Oswald, sans-serif!important;
+    font-size: 23.1px!important;
+    font-weight: 600!important;
+    letter-spacing: -1px!important;
+    color: mediumpurple!important;
+    text-decoration: none;
 }
 /* Style and alignment for your custom navigation links */
 .custom-top-links {
@@ -35,23 +36,12 @@ $brand-color: "mediumpurple";
     align-items: center;
 }
 
-.custom-top-links a, .custom-top-links a:link, .custom-top-links a:active, .custom-top-links a:visited, .custom-top-links a:focus {
-    color: black;
-    font-family: Helvetica, Arial, Oswald, sans-serif;
-    font-kerning: normal;
-    font-size: 15.75px;
-    line-height: 25.2px
-    font-weight: 500;
-    transition: color 0.2s ease-in-out;
-}
-
 .custom-top-links a:link, .custom-top-links a:visited, .custom-top-links a:hover, .custom-top-links a:focus, .custom-top-links a:active {
-    color: black;
-    font-family: Helvetica, Arial, Oswald, sans-serif;
-    font-kerning: normal;
-    font-size: 15.75px;
-    line-height: 25.2px
-    font-weight: 500;
+    color: black!important;
+    font-family: Helvetica, Arial, Oswald, sans-serif!important;
+    font-size: 15.75px!important;
+    line-height: 25.2px!important;
+    font-weight: 500!important;
     transition: color 0.2s ease-in-out;
 }
 
