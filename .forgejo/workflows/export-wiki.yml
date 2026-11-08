@@ -1,66 +1,84 @@
-name: Export Wiki to HTML and Push
+name: Export Wiki to GitHub Pages
+
 on:
   push:
     branches:
-      - main # Change to your default branch if different
+      - main # Change to your default branch name if different
 
 jobs:
-  deploy-wiki:
+  build-and-deploy:
     runs-on: linux
     steps:
-      - name: Checkout Main Repository
+      - name: Checkout Code Repository
         uses: actions/checkout@v4
 
-      - name: Checkout Local Forgejo Wiki
+      - name: Checkout Local Forgejo Wiki Repository
         run: |
-          # Forgejo wikis are just git repos named <repo-name>.wiki.git
-          # We clone the local wiki repository using the internal/local tokens
-          git clone http://${{ secrets.GITHUB_TOKEN }}@git.voidwarex.com/${{ github.repository }}.wiki.git local_wiki
-        continue-on-error: true # Prevents failure if the wiki is completely empty
+          # Forgejo stores wikis as a separate git repo named <repo-name>.wiki.git
+          # We clone it locally into a temporary directory
+          git clone "${{ github.server_url }}/${{ github.repository }}.wiki.git" local_wiki
 
-      - name: Convert Markdown to HTML
+      - name: Setup mdBook
         run: |
-          mkdir -p html_output/wiki
-          # Loop through markdown files and convert them
-          # Using a lightweight python or pandoc approach common on standard linux runners
-          if [ -d "local_wiki" ]; then
-            cd local_wiki
-            for f in *.md; do
-              if [ -f "$f" ]; then
-                filename=$(basename "$f" .md)
-                # Simple conversion wrap (replace with your preferred SSG if needed)
-                echo "<html><head><title>$filename</title></head><body>" > "../html_output/wiki/${filename}.html"
-                cat "$f" >> "../html_output/wiki/${filename}.html"
-                echo "</body></html>" >> "../html_output/wiki/${filename}.html"
-              fi
-            done
-            cd ..
-          else
-            echo "No wiki files found to convert."
+          # Download and install the latest stable mdBook binary
+          MDBOOK_VERSION=$(curl -s https://github.com | grep -oP '"tag_name": "\K[^"]+')
+          curl -sSL "https://github.com{MDBOOK_VERSION}/mdbook-${MDBOOK_VERSION}-x86_64-unknown-linux-gnu.tar.gz" | tar -xz
+          mv mdbook /usr/local/bin/
+
+      - name: Initialize and Build mdBook
+        run: |
+          # Create a basic mdBook configuration if it doesn't exist
+          if [ ! -f local_wiki/book.toml ]; then
+            cat <<EOF > local_wiki/book.toml
+          [book]
+          title = "${{ github.repository }} Wiki"
+          author = "Uriel Ballinas, VOIDWARE Prohibited"
+          language = "en"
+
+          [output.html]
+          git-repository-url = "https://${{ vars.GHPAGES_REPO }}"
+          site-url = "/wiki/"
+          EOF
           fi
 
-      - name: Push to Remote Repository
+          # Generate the SUMMARY.md dynamically if it doesn't exist to map wiki files
+          if [ ! -f local_wiki/SUMMARY.md ]; then
+            echo "# Summary" > local_wiki/SUMMARY.md
+            find local_wiki -name "*.md" ! -name "SUMMARY.md" -exec basename {} .md \; | while read -r file; do
+              # Clean up naming formatting for the sidebar links
+              name=$(echo "$file" | tr '-' ' ' | tr '_' ' ')
+              echo "- [$name]($file.md)" >> local_wiki/SUMMARY.md
+            done
+          fi
+
+          # Build the markdown files into static HTML
+          mdbook build local_wiki --dest-dir build_output
+
+      - name: Deploy to Remote GitHub Pages Repository
         env:
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
           REMOTE_REPO: ${{ vars.GHPAGES_REPO }}
-          GH_TOKEN: ${{ secrets.GH_PAT }}
         run: |
-          # Clone the target deployment repo (GitHub Pages repo)
-          git clone https://${GH_TOKEN}@${REMOTE_REPO} remote_dest
+          # Configure basic Git identification
+          git config --global user.name "forgejo-actions[bot]"
+          git config --global user.email "forgejo-actions[bot]@users.noreply.github.com"
+
+          # Clone the remote GitHub target repository safely
+          git clone "https://x-access-token:${GITHUB_TOKEN}@${REMOTE_REPO}" github_repo
           
-          # Ensure target directory exists and copy HTML structure
-          mkdir -p remote_dest/wiki
-          cp -r html_output/wiki/* remote_dest/wiki/
-          
-          # Commit and Push changes
-          cd remote_dest
-          git config user.name "Forgejo Action CI"
-          git config user.email "ci@forgejo.local"
+          # Ensure target subdirectory path exists and clean old wiki deployment assets
+          mkdir -p github_repo/wiki
+          rm -rf github_repo/wiki/*
+
+          # Copy compiled mdBook HTML output directly into the target subdirectory
+          cp -r local_wiki/build_output/* github_repo/wiki/
+
+          # Commit and Push updates back to the remote GitHub repository
+          cd github_repo
           git add wiki/
-          
-          # Only commit and push if changes actually exist
-          if git diff --cached --quiet; then
-            echo "No changes to deploy."
+          if git diff-index --quiet HEAD; then
+            echo "No wiki changes detected. Skipping push."
           else
-            git commit -m "Automated wiki HTML sync from Forgejo"
-            git push origin main
+            git commit -m "Automated synchronization update: Forgejo wiki to /wiki subfolder"
+            git push origin stable
           fi
