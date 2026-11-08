@@ -6,7 +6,7 @@ on:
 
 jobs:
   sync-wiki:
-    runs-on: ubuntu-latest
+    runs-on: linux
     steps:
       - name: Clone Local Wiki Repository
         env:
