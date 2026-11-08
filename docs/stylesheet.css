@@ -1,3 +1,11 @@
+#title-area {
+    flex-grow: 5;
+}
+
+#main-nav {
+  flex-grow: 0;
+}
+
 #projectname a{
 	text-transform: uppercase;
 }
@@ -12,13 +20,13 @@
 
 .custom-top-links a {
     color: var(--page-foreground-color); /* Matches Doxygen Awesome variable */
-    text-decoration: underline;
     font-weight: 500;
     transition: color 0.2s ease-in-out;
 }
 
 .custom-top-links a:hover {
     color: var(--primary-color); /* Changes to theme accent on hover */
+    text-decoration: underline;
 }
 
 /* Optional: Force-hide the old navigation menu row if it still occupies space 
