@@ -38,7 +38,7 @@ jobs:
           mkdir -p ../remote-repo
           
           # 2. Clone the external target repository into the temporary workspace
-          git clone --depth 1 "https://x-access-token:${GH_PAT}@://github.com{TARGET_REPO}.git" ../remote-repo
+          git clone --depth 1 "https://x-access-token:${GH_PAT}@github.com/${TARGET_REPO}.git" ../remote-repo
           
           # 3. Create the target subdirectory if it doesn't exist, and sync the fresh documentation
           mkdir -p "../remote-repo/${TARGET_FOLDER}"
