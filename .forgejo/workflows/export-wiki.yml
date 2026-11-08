@@ -45,7 +45,7 @@ jobs:
             cat <<EOF > local_wiki/book.toml
           [book]
           title = "${{ github.repository }} Wiki"
-          author = "Uriel Ballinas, VOIDWARE Prohibited"
+          authors = ["Uriel Ballinas, VOIDWARE Prohibited"]
           language = "en"
 
           [output.html]
