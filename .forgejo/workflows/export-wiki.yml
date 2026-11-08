@@ -47,8 +47,8 @@ jobs:
           if [ ! -f local_wiki/book.toml ]; then
             cat <<EOF > local_wiki/book.toml
           [book]
-          title = "Project Wiki"
-          author = "Forgejo Actions"
+          title = "${{ github.repository }} Wiki"
+          authors = ["Uriel Ballinas, VOIDWARE Prohibited"]
           language = "en"
           src = "src"
 
