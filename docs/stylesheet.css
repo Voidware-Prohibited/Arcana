@@ -1,12 +1,12 @@
 #title-area {
-    flex-grow: 5;
+    flex-grow: 5!important;
 }
 
 #main-nav {
-  flex-grow: 0;
+  flex-grow: 0!important;
 }
 
-#projectname a{
+#projectname a, #projectname a:active{
 	text-transform: uppercase;
 	color: var(--header-foreground);
 }
