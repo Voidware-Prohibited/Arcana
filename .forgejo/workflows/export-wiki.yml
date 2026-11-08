@@ -51,7 +51,7 @@ jobs:
           src = "src"
 
           [output.html]
-          git-repository-url = "https://${{ vars.REMOTE_GITHUB_REPO }}"
+          git-repository-url = "https://github.com/${{ vars.GHPAGES_REPO }}"
           site-url = "/wiki/"
           EOF
           fi
@@ -79,7 +79,7 @@ jobs:
           git config --global user.name "forgejo-actions[bot]"
           git config --global user.email "forgejo-actions[bot]@://github.com"
 
-          git clone "https://x-access-token:${GITHUB_TOKEN}@${REMOTE_REPO}" github_repo
+          git clone "https://x-access-token:${GITHUB_TOKEN}@github.com/${REMOTE_REPO}" github_repo
           
           mkdir -p github_repo/wiki
           rm -rf github_repo/wiki/*
