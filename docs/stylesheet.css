@@ -23,6 +23,6 @@
 }
 */
 
-ul.main-menu li:not(#searchBoxPos2) {
+#main-menu li:not(#searchBoxPos2) {
     display: none!important;
 }
