@@ -1,3 +1,6 @@
+#projectname a{
+	text-transform: uppercase;
+}
 /* Style and alignment for your custom navigation links */
 .custom-top-links {
     display: flex;
