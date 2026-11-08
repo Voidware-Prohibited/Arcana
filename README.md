@@ -25,18 +25,16 @@
 > [!NOTE]  
 > VOIDWARE Prohibited has begun hosting code and content primarily on [Codeberg](https://codeberg.org/Voidware-Prohibited/). Mirrors will still be maintained on [GitHub](https://github.com/Voidware-Prohibited/Arcana/) and [GitLab](https://gitlab.com/Voidware-Prohibited/Arcana/).
 
-A multiplayer Character Interaction System utilizing Gameplay Ability System (GAS), Contextual Animation . Arcana provides a feature rich, multiplayer-ready, cinematic, extensible Character Interaction system for modern games.
-
-World Paritioning Support.
-
-The use of interfaces creates an abstraction layer to Deserialize and Serialze objects to and from a database via Archon, Aurora or your custom serialzation solution.
+A multiplayer Smart Object and Character Interaction System utilizing World Paritioning, Gameplay Ability System (GAS) and Contextual Animation. Arcana provides a feature rich, multiplayer-ready, cinematic, extensible Smart Object and Character Interaction system for modern games.
 
 Arcana is a part of the [Target Vector](/Voidware-Prohibited/TargetVector/) framework.
 
 [🌐Site](https://Arcana.voidwarex.com/) • [📚Wiki](../../wiki/) • [📘Documentation](https://Arcana.voidwarex.com/docs/) • [📑Roadmap](https://Arcana.notion.site/2be59e501e7a4bf583437d1636bc7f2f?v=ac361eb5a6a14081892ff9a68e3e7a44/) • [🐤Twitter](https://x.com/Arcana/) • [🗨️Discord](discord://colorindarkness/)
 
 # Introduction
-Granular control over Player and AI Interaction with Gameplay Abilities and Volumes.
+Efficiently and Automatically manage spawning a large amount of Interactive Smart Objects over large partitioned Worlds.
+Deserialize and Serialze objects to and from a database via Archon, Aurora or your custom serialzation solution.
+Support for granular control over Player and AI Interaction with Gameplay Abilities and Volumes.
 
 > [!WARNING]
 > _Arcana is under heavy development, many features may not be finished or production-ready. Use at your own risk._ 
@@ -45,6 +43,7 @@ Granular control over Player and AI Interaction with Gameplay Abilities and Volu
 - Arcana World Subsystem.
 - Interaction Gameplay Abilities.
 - Contextual Animation Integration.
+- World Paritioning Support.
 - Arcana World Actor Base class.
 - Arcana World Actor Interface.
 - Arcana World Volume Base class.

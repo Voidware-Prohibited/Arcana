@@ -1,0 +1,40 @@
+name: Sync Wiki to External Remotes
+
+on:
+  gitea_event:
+    types: [wiki] # Triggers on any wiki page creation or edit
+
+jobs:
+  sync-wiki:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone Local Wiki Repository
+        env:
+          # Forgejo automatically provides a temporary token for the run
+          LOCAL_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
+        run: |
+          # Construct the local Forgejo wiki repository URL using the action variables
+          WIKI_URL="https://token:${LOCAL_TOKEN}@${{ forgejo.server_url }}/${{ forgejo.repository }}.wiki.git"
+          git clone --mirror "$WIKI_URL" wiki_repo
+
+      - name: Push Mirror to External Platforms
+        run: |
+          cd wiki_repo
+          
+          # 1. Push to Codeberg
+          if [ -n "${{ secrets.CODEBERG_TOKEN }}" ]; then
+            echo "Pushing to Codeberg..."
+            git push --mirror "https://${{ vars.CODEBERG_USER }}:${{ secrets.CODEBERG_TOKEN }}@codeberg.org/${{ vars.CODEBERG_REPO_PATH }}.wiki.git"
+          fi
+
+          # 2. Push to GitHub
+          if [ -n "${{ secrets.GH_TOKEN }}" ]; then
+            echo "Pushing to GitHub..."
+            git push --mirror "https://${{ vars.GH_USER }}:${{ secrets.GH_TOKEN }}@://github.com/{{ vars.GH_REPO_PATH }}.wiki.git"
+          fi
+
+          # 3. Push to GitLab
+          if [ -n "${{ secrets.GITLAB_TOKEN }}" ]; then
+            echo "Pushing to GitLab..."
+            git push --mirror "https://oauth2:${{ secrets.GITLAB_TOKEN }}@://gitlab.com/{{ vars.GITLAB_REPO_PATH }}.wiki.git"
+          fi
