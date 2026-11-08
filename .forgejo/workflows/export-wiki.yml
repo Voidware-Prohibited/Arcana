@@ -16,7 +16,7 @@ jobs:
         run: |
           # Forgejo stores wikis as a separate git repo named <repo-name>.wiki.git
           # We clone it locally into a temporary directory
-          git clone "https://x-access-token:${{ github.token }}@${{ github.server_url | replace('https://', '') }}/${{ github.repository }}.wiki.git" local_wiki
+          git clone "https://x-access-token:${{ github.token }}@${{ github.server_url }}/${{ github.repository }}.wiki.git" local_wiki
 
       - name: Setup mdBook
         run: |
