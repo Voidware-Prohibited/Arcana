@@ -2,12 +2,12 @@ name: Cross-platform Unreal Plugin CI for Releases
 
 on:
   push:
-    branches: [ main ] # Add all branches to be tested here
+    branches: [ stable ] # Add all branches to be tested here
     tags:
       - 'v*'
       - '!v*-alpha' # Excludes alpha tags
   pull_request:
-    branches: [ main ]
+    branches: [ stable ]
     tags:
       - 'v*'
       - '!v*-alpha' # Excludes alpha tags
@@ -15,12 +15,12 @@ on:
 
 env:
   # --- Configuration Variables ---
-  PLUGIN_NAME: "ALSXT"
-  UE_VERSION: "5.7"
+  PLUGIN_NAME: "Arcana"
+  UE_VERSION: "5.8"
   # Path to UE Engine installation (Adjust for each runner OS)
-  UE_PATH_WIN: "C:/EpicGames/UE_5.7"
-  UE_PATH_LINUX: "/home/runner/ue/UE_5.7"
-  UE_PATH_MAC: "/Users/Shared/EpicGames/UE_5.7"
+  UE_PATH_WIN: "C:/EpicGames/UE_5.8"
+  UE_PATH_LINUX: "/home/runner/ue/UE_5.8"
+  UE_PATH_MAC: "/Users/Shared/EpicGames/UE_5.8"
   # Codecov Token (Add to Forgejo Secrets)
   CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
   # ------------------------------
@@ -35,15 +35,15 @@ jobs:
         include:
           - os: windows
             runner_label: ue-win
-            ue_path: "C:/EpicGames/UE_5.7"
+            ue_path: "C:/EpicGames/UE_5.8"
             run_cmd: "RunUAT.bat"
           - os: linux
             runner_label: ue-linux
-            ue_path: "/home/runner/ue/UE_5.7"
+            ue_path: "/home/runner/ue/UE_5.8"
             run_cmd: "./RunUAT.sh"
           - os: macos
             runner_label: ue-mac
-            ue_path: "/Users/Shared/EpicGames/UE_5.7"
+            ue_path: "/Users/Shared/EpicGames/UE_5.8"
             run_cmd: "./RunUAT.sh"
 
     steps:
