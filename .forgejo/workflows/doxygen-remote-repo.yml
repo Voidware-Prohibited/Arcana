@@ -27,12 +27,15 @@ jobs:
           # Clone the Doxygen Awesome CSS repository
           git clone --depth=1 https://github.com/jothepro/doxygen-awesome-css.git
 
+          doxygen -w html header.html delete_me.html delete_me.css
+          rm delete_me.html delete_me.css
+
           # Dynamically append theme settings to your Doxyfile
           echo "HTML_EXTRA_STYLESHEET  = doxygen-awesome-css/doxygen-awesome.css" >> Doxyfile
           
           # Optional: Include interactive extensions (like the Dark Mode toggle)
           echo "HTML_EXTRA_FILES       = doxygen-awesome-css/doxygen-awesome-darkmode-toggle.js" >> Doxyfile
-          # echo "HTML_HEADER            = header.html" >> Doxyfile 
+          echo "HTML_HEADER            = header.html" >> Doxyfile 
 
           # Run doxygen as usual
           doxygen Doxyfile
