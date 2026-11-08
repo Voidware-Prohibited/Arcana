@@ -15,7 +15,7 @@ jobs:
         run: |
           # Forgejo wikis are just git repos named <repo-name>.wiki.git
           # We clone the local wiki repository using the internal/local tokens
-          git clone http://${{ secrets.GITHUB_TOKEN }}@localhost:3000/${{ github.repository }}.wiki.git local_wiki
+          git clone http://${{ secrets.GITHUB_TOKEN }}@git.voidwarex.com/${{ github.repository }}.wiki.git local_wiki
         continue-on-error: true # Prevents failure if the wiki is completely empty
 
       - name: Convert Markdown to HTML
@@ -41,7 +41,7 @@ jobs:
 
       - name: Push to Remote Repository
         env:
-          REMOTE_REPO: ${{ vars.GH_REPO }}
+          REMOTE_REPO: ${{ vars.GHPAGES_REPO }}
           GH_TOKEN: ${{ secrets.GH_PAT }}
         run: |
           # Clone the target deployment repo (GitHub Pages repo)
