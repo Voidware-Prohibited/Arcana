@@ -1,6 +1,11 @@
+/* Style and alignment for your custom navigation links */
 $theme-color: "snowwhite";
-$brand-color: "mediumpurple";
+$brand-color: "#903fff";
 
+.theme-toggle-btn {
+    vertical-align: middle;
+    display: inline;
+}
 #top {
     height: 63.84px!important;
     margin-top: 12px!important;
@@ -26,7 +31,7 @@ $brand-color: "mediumpurple";
     font-size: 23.1px!important;
     font-weight: 600!important;
     letter-spacing: -1px!important;
-    color: #903fff!important;
+    color: $brand-color!important;
     text-decoration: none;
 }
 /* Style and alignment for your custom navigation links */
@@ -36,14 +41,14 @@ $brand-color: "mediumpurple";
     align-items: center;
 }
 
-.custom-top-links a:link, .custom-top-links a:visited, .custom-top-links a:hover, .custom-top-links a:focus, .custom-top-links a:active {
+.custom-top-links a, .custom-top-links a:link, .custom-top-links a:visited, .custom-top-links a:hover, .custom-top-links a:focus, .custom-top-links a:active {
     color: black!important;
     font-family: Helvetica, Arial, Oswald, sans-serif!important;
     font-size: 15.75px!important;
     line-height: 25.2px!important;
     font-weight: 500!important;
     transition: color 0.2s ease-in-out;
-    margin-right: 24px;
+    margin-right: 24px!important;
 }
 
 .custom-top-links a:hover {
