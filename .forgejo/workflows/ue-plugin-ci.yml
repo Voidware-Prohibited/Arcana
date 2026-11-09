@@ -8,32 +8,32 @@ on:
 
 env:
   # --- Configuration Variables ---
-  PLUGIN_NAME: "ALSXT" # Change to .uplugin name
-  UE_VERSION: "5.7"
+  PLUGIN_NAME: "Arcana" # Change to .uplugin name
+  UE_VERSION: "5.8"
   # Paths must match your self-hosted runner environment
-  UE_PATH_WIN: "C:/Program Files/Epic Games/UE_5.4"
+  UE_PATH_WIN: "C:/Program Files/Epic Games/UE_5.8"
   UE_PATH_LINUX: "/opt/unreal-engine"
-  UE_PATH_MAC: "/Users/Shared/Epic Games/UE_5.4"
+  UE_PATH_MAC: "/Users/Shared/Epic Games/UE_5.8"
   # Codecov Token (Add to Forgejo Secrets)
   CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
 jobs:
   build-and-test:
     name: Build & Test (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
+    runs-on: self-hosted, ${{ matrix.os }}
     strategy:
       fail-fast: false
       matrix:
         include:
           - os: windows
             runuat: 'Engine/Build/BatchFiles/RunUAT.bat'
-            ue_path: "C:/Program Files/Epic Games/UE_5.4"
+            ue_path: "C:/Program Files/Epic Games/UE_5.8"
           - os: linux
             runuat: 'Engine/Build/BatchFiles/RunUAT.sh'
             ue_path: "/opt/unreal-engine"
           - os: macos
             runuat: 'Engine/Build/BatchFiles/RunUAT.sh'
-            ue_path: "/Users/Shared/Epic Games/UE_5.4"
+            ue_path: "/Users/Shared/Epic Games/UE_5.8"
 
     steps:
       - name: Checkout Code
