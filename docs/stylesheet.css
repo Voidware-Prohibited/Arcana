@@ -21,8 +21,18 @@ $brand-color: "#903fff";
 }
 
 #projectname {
-    flex-grow: 5!important;   
+    flex-grow: 5!important;
+    padding: 0px!important;
 }
+
+#projectname a img{
+    transform: translateY(-4px);
+    display: inline-block;
+  height: 42.56px;
+  margin-right: 5px;
+  vertical-align: middle;
+}
+
 
 #projectname a, #projectname a:link, #projectname a:active, #projectname a:visited, #projectname a:focus, #projectname a:hover{
     text-transform: uppercase;
