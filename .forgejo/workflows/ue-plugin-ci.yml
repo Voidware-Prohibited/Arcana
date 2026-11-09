@@ -15,9 +15,9 @@ env:
   PLUGIN_NAME: "Arcana" # Change to .uplugin name
   UE_VERSION: "5.8"
   # Paths must match your self-hosted runner environment
-  UE_PATH_WIN: "C:/Program Files/Epic Games/UE_5.8"
-  UE_PATH_LINUX: "/opt/unreal-engine"
-  UE_PATH_MAC: "/Users/Shared/Epic Games/UE_5.8"
+  UE_PATH_WIN: "C:/Program Files/Epic Games/UE_${{ env.UE_VERSION }}"
+  UE_PATH_WIN: "C:/Program Files/Epic Games/UE_${{ env.UE_VERSION }}"
+  UE_PATH_MAC: "/Users/Shared/Epic Games/UE_${{ env.UE_VERSION }}"
   # Codecov Token (Add to Forgejo Secrets)
   CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
@@ -31,13 +31,13 @@ jobs:
         include:
           - os: windows
             runuat: 'Engine/Build/BatchFiles/RunUAT.bat'
-            ue_path: "C:/Program Files/Epic Games/UE_5.8"
+            ue_path: "C:/Program Files/Epic Games/UE_${{ env.UE_VERSION }}"
           - os: linux
-            runuat: 'Engine/Build/BatchFiles/RunUAT.sh'
-            ue_path: "/opt/unreal-engine"
+            runuat: 'Engine/Build/BatchFiles/RunUAT.bat'
+            ue_path: "C:/Program Files/Epic Games/UE_${{ env.UE_VERSION }}"
           - os: macos
             runuat: 'Engine/Build/BatchFiles/RunUAT.sh'
-            ue_path: "/Users/Shared/Epic Games/UE_5.8"
+            ue_path: "/Users/Shared/Epic Games/UE_${{ env.UE_VERSION }}"
 
     steps:
       - name: Checkout Code
