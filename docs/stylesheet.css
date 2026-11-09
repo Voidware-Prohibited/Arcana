@@ -26,7 +26,7 @@ $brand-color: "mediumpurple";
     font-size: 23.1px!important;
     font-weight: 600!important;
     letter-spacing: -1px!important;
-    color: mediumpurple!important;
+    color: #903fff!important;
     text-decoration: none;
 }
 /* Style and alignment for your custom navigation links */
@@ -43,6 +43,7 @@ $brand-color: "mediumpurple";
     line-height: 25.2px!important;
     font-weight: 500!important;
     transition: color 0.2s ease-in-out;
+    margin-right: 24px;
 }
 
 .custom-top-links a:hover {
