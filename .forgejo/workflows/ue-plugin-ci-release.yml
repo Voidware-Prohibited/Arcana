@@ -78,7 +78,7 @@ jobs:
 
   release:
     needs: build-test-package
-    runs-on: ubuntu-latest
+    runs-on: linux
     if: github.ref == 'refs/heads/main'
     steps:
       - name: Checkout
