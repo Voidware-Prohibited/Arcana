@@ -31,10 +31,10 @@ jobs:
           git clone --depth=1 https://codeberg.org/Voidware-Prohibited/DoxygenSharedTemplateFiles.git
 
           # Dynamically append theme settings to your Doxyfile
-          echo "HTML_EXTRA_STYLESHEET  = doxygen-awesome-css/doxygen-awesome.css DoxygenSharedTemplateFiles/stylesheet.css" >> Doxyfile
+          echo "HTML_EXTRA_STYLESHEET  = doxygen-awesome-css/doxygen-awesome.css DoxygenSharedTemplateFiles/stylesheet.css DoxygenSharedTemplateFiles/custom_menu.css" >> Doxyfile
           
           # Optional: Include interactive extensions (like the Dark Mode toggle)
-          echo "HTML_EXTRA_FILES       = doxygen-awesome-css/doxygen-awesome-darkmode-toggle.js" >> Doxyfile
+          echo "HTML_EXTRA_FILES       = doxygen-awesome-css/doxygen-awesome-darkmode-toggle.js DoxygenSharedTemplateFiles/custom_menu.js" >> Doxyfile
           echo "HTML_HEADER            = DoxygenSharedTemplateFiles/header.html" >> Doxyfile 
           echo "HTML_FOOTER            = DoxygenSharedTemplateFiles/footer.html" >> Doxyfile
           echo "LAYOUT_FILE            = DoxygenSharedTemplateFiles/DoxygenLayout.xml" >> Doxyfile 
