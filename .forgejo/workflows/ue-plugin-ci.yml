@@ -2,11 +2,11 @@ name: Cross-platform Unreal Plugin CI
 
 on:
   push:
-    branches: [ main ] # Add all branches to be tested here
+    branches: [ stable ] # Add all branches to be tested here
     tags:
       - 'v*'
   pull_request:
-    branches: [ main ]
+    branches: [ stable ]
     tags:
       - 'v*'
 
