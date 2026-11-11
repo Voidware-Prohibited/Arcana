@@ -30,6 +30,8 @@ jobs:
           # Clone the Voidware DoxygenSharedTemplateFiles repository
           git clone --depth=1 https://codeberg.org/Voidware-Prohibited/DoxygenSharedTemplateFiles.git
 
+          sed -i "s/__GEN_DATE__/$(date '+%Y-%m-%d %H:%M:%S')/g" DoxygenSharedTemplateFiles/footer.html
+
           # Dynamically append theme settings to your Doxyfile
           echo "HTML_EXTRA_STYLESHEET  += doxygen-awesome-css/doxygen-awesome.css DoxygenSharedTemplateFiles/stylesheet.css DoxygenSharedTemplateFiles/custom_menu.css" >> Doxyfile
           
