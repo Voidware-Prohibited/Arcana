@@ -87,14 +87,21 @@ jobs:
       # 2a. Build Plugin via RunUAT (Windows)
       - name: Build Plugin (Windows)
         if: matrix.os == 'windows'
-        shell: cmd
+        shell: pwsh
         run: |
-          call "%WIN_UE_ROOT%\Engine\Build\BatchFiles\RunUAT.bat" BuildPlugin ^
-            -Plugin="%CD%\plugin-src\%PLUGIN_NAME%.uplugin" ^
-            -Package="%CD%\packaged-plugin" ^
-            -TargetPlatforms=${{ matrix.target_platform }} ^
+          $uatPath = Join-Path $env:WIN_UE_ROOT "Engine\Build\BatchFiles\RunUAT.bat"
+          $pluginPath = Join-Path $PWD "plugin-src\$($env:PLUGIN_NAME).uplugin"
+          $packagePath = Join-Path $PWD "packaged-plugin"
+
+          & $uatPath BuildPlugin `
+            -Plugin="$pluginPath" `
+            -Package="$packagePath" `
+            -TargetPlatforms=${{ matrix.target_platform }} `
             -Rocket
-          if %errorlevel% neq 0 exit /b %errorlevel%
+
+          if ($LASTEXITCODE -ne 0) {
+            exit $LASTEXITCODE
+          }
 
       # 2b. Build Plugin via RunUAT (macOS)
       - name: Build Plugin (macOS)
