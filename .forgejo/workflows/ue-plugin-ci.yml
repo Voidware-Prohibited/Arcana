@@ -60,10 +60,9 @@ jobs:
         id: win_paths
         shell: bash
         run: |
-          $engineDir = "D:/DEV/UE5/UE_5.8"
-
-          "UAT_PATH=$engineDir/Engine/Build/BatchFiles/RunUAT.bat" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
-          "EDITOR_PATH=$engineDir/Engine/Binaries/Win64/UnrealEditor-Cmd.exe" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          ENGINE_DIR="D:/DEV/UE5/UE_5.8"
+          echo "UAT_PATH=D:/DEV/UE5/UE_5.8/Engine/Build/BatchFiles/RunUAT.sh" >> $GITHUB_OUTPUT
+          echo "EDITOR_PATH=D:/DEV/UE5/UE_5.8/Engine/Binaries/Win64/UnrealEditor-Cmd.exe" >> $GITHUB_OUTPUT
 
       - name: Set Engine Paths (macOS)
         if: matrix.os == 'macos'
