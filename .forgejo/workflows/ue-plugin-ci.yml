@@ -55,12 +55,6 @@ jobs:
           path: ${{ env.PLUGIN_NAME }}
           fetch-depth: 0 # Full git history required for accurate changelog generation
 
-      - name: Install PowerShell Core via Bash
-        shell: bash
-        run: |
-          winget.exe install --id Microsoft.PowerShell --source winget --accept-package-agreements --accept-source-agreements --silent
-          echo "/c/Program Files/PowerShell/7" >> "$GITHUB_PATH"
-
       - name: Set Engine Paths (Windows Registry)
         if: matrix.os != 'macos'
         id: win_paths
