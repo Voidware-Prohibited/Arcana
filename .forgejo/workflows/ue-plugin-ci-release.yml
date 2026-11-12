@@ -60,31 +60,9 @@ jobs:
       - name: Set Engine Paths (Windows Registry)
         if: matrix.os != 'macos'
         id: win_paths
-        shell: pwsh
+        shell: bash
         run: |
-          $version = "5.8"
-          $regPath = "HKLM:\SOFTWARE\EpicGames\Unreal Engine\$version"
-          $engineDir = $null
-
-          if (Test-Path $regPath) {
-            $engineDir = (Get-ItemProperty -Path $regPath -Name "InstalledDirectory" -ErrorAction SilentlyContinue).InstalledDirectory
-          }
-
-          # Fallback to user-registered source/custom engine builds
-          if (-not $engineDir) {
-            $buildsPath = "HKCU:\SOFTWARE\EpicGames\Unreal Engine\Builds"
-            if (Test-Path $buildsPath) {
-              $engineDir = (Get-ItemProperty -Path $buildsPath -Name $version -ErrorAction SilentlyContinue).$version
-            }
-          }
-
-          if (-not $engineDir -or -not (Test-Path $engineDir)) {
-            Write-Error "Could not locate Unreal Engine $version in Windows Registry."
-            exit 1
-          }
-
-          # Normalize backslashes to forward slashes for cross-shell compatibility
-          $engineDir = $engineDir.TrimEnd('\', '/') -replace '\\', '/'
+          $engineDir = "D:/DEV/UE5/UE_5.8"
           Write-Host "Found UE $version at: $engineDir"
 
           "UAT_PATH=$engineDir/Engine/Build/BatchFiles/RunUAT.bat" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
