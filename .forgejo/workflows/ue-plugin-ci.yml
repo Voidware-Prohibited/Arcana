@@ -279,14 +279,14 @@ jobs:
             coverage.xml
 
       # 6. Upload Coverage to Codecov (Native Windows Only)
-      - name: Upload Coverage to Codecov
-        if: matrix.run_coverage == true && success()
-        uses: codecov/codecov-action@v4
+      - name: Upload coverage reports to Codecov
+        uses: codecov/codecov-action@v5
         with:
-          token: ${{ env.CODECOV_TOKEN }}
+          token: ${{ secrets.CODECOV_TOKEN }}
           files: ./coverage.xml
           flags: windows-ue58
           fail_ci_if_error: true
+          slug: Voidware-Prohibited/Arcana
 
        # 7a. Update Commit Status on Forgejo (Windows)
       - name: Update Forgejo Commit Status (Windows)

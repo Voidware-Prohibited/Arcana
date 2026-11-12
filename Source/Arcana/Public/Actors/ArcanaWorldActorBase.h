@@ -38,7 +38,7 @@ protected:
 	TObjectPtr<UContextualAnimSceneActorComponent> ContextualAnimationComponent;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-	TObjectPtr<UStaticMeshComponent> StaticMeshComponent;
+	UStaticMeshComponent* StaticMeshComponent;
 	
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	TObjectPtr<USkeletalMeshComponent> SkeletalMeshComponent;
