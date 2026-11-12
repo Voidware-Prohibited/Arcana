@@ -20,7 +20,7 @@ public class Arcana : ModuleRules
 		CppCompileWarningSettings.NonInlinedGenCppWarningLevel = WarningLevel.Warning;
 		
 		PublicDependencyModuleNames.AddRange([
-				"Core", "GameplayAbilities", "GameplayTags", "DeveloperSettings", "SmartObjectsModule", "GameplayBehaviorSmartObjectsModule", "ContextualAnimation", "MotionWarping", "StateTreeModule", "GameplayStateTreeModule", "PCG", "HTTP", "Json", "JsonUtilities", "ProceduralVolumeWithFalloff"
+				"Core", "GameplayAbilities", "GameplayTags", "DeveloperSettings", "SmartObjectsModule", "GameplayBehaviorSmartObjectsModule", "ContextualAnimation", "MotionWarping", "StateTreeModule", "GameplayStateTreeModule", "PCG", "HTTP", "Json", "JsonUtilities"
 				// ... add other public dependencies that you statically link with here ...
 			]
 			);
