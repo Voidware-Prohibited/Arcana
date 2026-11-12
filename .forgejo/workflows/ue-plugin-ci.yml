@@ -56,7 +56,14 @@ jobs:
 
     steps:
       - name: Install Git LFS
-        run: choco install git-lfs -y
+        shell: bash
+        run: |
+          VERSION="3.6.0"
+          curl -sL "https://github.com{VERSION}/git-lfs-windows-amd64-v${VERSION}.zip" -o git-lfs.zip
+          unzip -q git-lfs.zip -d "$RUNNER_TEMP/git-lfs"
+          BIN_DIR=$(dirname "$(find "$RUNNER_TEMP/git-lfs" -name "git-lfs.exe" | head -n 1)")
+          cygpath -w "$BIN_DIR" >> "$GITHUB_PATH"
+          "$BIN_DIR/git-lfs.exe" install
         
       # 1. Checkout Plugin Code
       - name: Checkout Plugin Code
