@@ -123,25 +123,32 @@ jobs:
       # 3a. Create Blank C++ Host Project (Windows)
       - name: Create Host Project (Windows)
         if: matrix.os == 'windows'
-        shell: cmd
+        shell: powershell
         run: |
-          mkdir "%CD%\HostProject\Plugins\%PLUGIN_NAME%"
-          xcopy "%CD%\packaged-plugin\*" "%CD%\HostProject\Plugins\%PLUGIN_NAME%\" /E /I /Y /Q
+          $ErrorActionPreference = "Stop"
 
-          (
-            echo {
-            echo   "FileVersion": 3,
-            echo   "EngineAssociation": "%UE_VERSION%",
-            echo   "Category": "",
-            echo   "Description": "",
-            echo   "Plugins": [
-            echo     {
-            echo       "Name": "%PLUGIN_NAME%",
-            echo       "Enabled": true
-            echo     }
-            echo   ]
-            echo }
-          ) > "%CD%\HostProject\HostProject.uproject"
+          $pluginDest = Join-Path $PWD "HostProject\Plugins\$($env:PLUGIN_NAME)"
+          New-Item -ItemType Directory -Path $pluginDest -Force | Out-Null
+
+          $packagedSrc = Join-Path $PWD "packaged-plugin\*"
+          Copy-Item -Path $packagedSrc -Destination $pluginDest -Recurse -Force
+
+          $uprojectObj = [ordered]@{
+            FileVersion       = 3
+            EngineAssociation = $env:UE_VERSION
+            Category          = ""
+            Description       = ""
+            Plugins           = @(
+              [ordered]@{
+                Name    = $env:PLUGIN_NAME
+                Enabled = $true
+              }
+            )
+          }
+
+          $uprojectPath = Join-Path $PWD "HostProject\HostProject.uproject"
+          $jsonContent = $uprojectObj | ConvertTo-Json -Depth 4
+          [System.IO.File]::WriteAllText($uprojectPath, $jsonContent)
 
       # 3b. Create Blank C++ Host Project (macOS)
       - name: Create Host Project (macOS)
@@ -170,51 +177,75 @@ jobs:
       # 4a. Run UAT Automation Tests + OpenCppCoverage (Native Windows Only)
       - name: Run UAT Automation Tests & OpenCppCoverage (Native Windows)
         if: matrix.run_coverage == true
-        shell: cmd
+        shell: powershell
         run: |
-          mkdir "%CD%\TestReports"
+          $ErrorActionPreference = "Stop"
 
-          "%OPENCPP_PATH%" ^
-            --sources="%CD%\HostProject\Plugins\%PLUGIN_NAME%\Source" ^
-            --modules="UnrealEditor-%PLUGIN_NAME%*.dll" ^
-            --export_type="cobertura:%CD%\coverage.xml" ^
-            --cover_children ^
-            -- ^
-            "%WIN_UE_ROOT%\Engine\Build\BatchFiles\RunUAT.bat" RunUnreal ^
-              -project="%CD%\HostProject\HostProject.uproject" ^
-              -platform=Win64 ^
-              -configuration=Development ^
-              -build=editor ^
-              -test=UE.EditorAutomation ^
-              -RunTest="%TESTS_FILTER%" ^
-              -ReportExportPath="%CD%\TestReports" ^
+          $reportDir = Join-Path $PWD "TestReports"
+          New-Item -ItemType Directory -Path $reportDir -Force | Out-Null
+
+          $sourcesPath = Join-Path $PWD "HostProject\Plugins\$($env:PLUGIN_NAME)\Source"
+          $coverageXml = Join-Path $PWD "coverage.xml"
+          $uatPath     = Join-Path $env:WIN_UE_ROOT "Engine\Build\BatchFiles\RunUAT.bat"
+          $projectPath = Join-Path $PWD "HostProject\HostProject.uproject"
+
+          & $env:OPENCPP_PATH `
+            --sources="$sourcesPath" `
+            --modules="UnrealEditor-$($env:PLUGIN_NAME)*.dll" `
+            --export_type="cobertura:$coverageXml" `
+            --cover_children `
+            -- `
+            "$uatPath" RunUnreal `
+              -project="$projectPath" `
+              -platform=Win64 `
+              -configuration=Development `
+              -build=editor `
+              -test=UE.EditorAutomation `
+              -RunTest="$($env:TESTS_FILTER)" `
+              -ReportExportPath="$reportDir" `
               -unattended -nop4 -nosplash -nullrhi
-          if %errorlevel% neq 0 exit /b %errorlevel%
+
+          if ($LASTEXITCODE -ne 0) {
+            exit $LASTEXITCODE
+          }
 
       # 4b. Run Automated Tests (Linux Cross-Compiled on Windows via WSL2)
       - name: Run Automated Tests (Linux via WSL2)
         if: matrix.run_linux_tests == true
-        shell: cmd
+        shell: powershell
         run: |
-          mkdir "%CD%\TestReports"
+          $ErrorActionPreference = "Stop"
 
-          call "%WIN_UE_ROOT%\Engine\Build\BatchFiles\RunUAT.bat" BuildCookRun ^
-            -project="%CD%\HostProject\HostProject.uproject" ^
-            -platform=Linux ^
-            -clientconfig=Development ^
+          $reportDir = Join-Path $PWD "TestReports"
+          New-Item -ItemType Directory -Path $reportDir -Force | Out-Null
+
+          $uatPath     = Join-Path $env:WIN_UE_ROOT "Engine\Build\BatchFiles\RunUAT.bat"
+          $projectPath = Join-Path $PWD "HostProject\HostProject.uproject"
+          $linuxBin    = Join-Path $PWD "HostProject\Saved\StagedBuilds\Linux\HostProject\Binaries\Linux\HostProject"
+
+          & $uatPath BuildCookRun `
+            -project="$projectPath" `
+            -platform=Linux `
+            -clientconfig=Development `
             -build -cook -stage -pak -unattended -nop4
-          if %errorlevel% neq 0 exit /b %errorlevel%
 
-          for /f "delims=" %%i in ('wsl wslpath -a "%CD%\HostProject\HostProject.uproject"') do set "WSL_PROJECT_PATH=%%i"
-          for /f "delims=" %%i in ('wsl wslpath -a "%CD%\TestReports"') do set "WSL_REPORT_PATH=%%i"
-          for /f "delims=" %%i in ('wsl wslpath -a "%CD%\HostProject\Saved\StagedBuilds\Linux\HostProject\Binaries\Linux\HostProject"') do set "WSL_BIN_PATH=%%i"
+          if ($LASTEXITCODE -ne 0) {
+            exit $LASTEXITCODE
+          }
 
-          wsl "%WSL_BIN_PATH%" ^
-            "%WSL_PROJECT_PATH%" ^
-            -ExecCmds="Automation RunTests %TESTS_FILTER%; Quit" ^
-            -ReportExportPath="%WSL_REPORT_PATH%" ^
+          $wslProjectPath = (wsl wslpath -a "$projectPath").Trim()
+          $wslReportPath  = (wsl wslpath -a "$reportDir").Trim()
+          $wslBinPath     = (wsl wslpath -a "$linuxBin").Trim()
+
+          wsl "$wslBinPath" `
+            "$wslProjectPath" `
+            -ExecCmds="Automation RunTests $($env:TESTS_FILTER); Quit" `
+            -ReportExportPath="$wslReportPath" `
             -unattended -nop4 -nosplash -nullrhi
-          if %errorlevel% neq 0 exit /b %errorlevel%
+
+          if ($LASTEXITCODE -ne 0) {
+            exit $LASTEXITCODE
+          }
 
       # 4c. Run Automated Tests (macOS)
       - name: Run Automated Tests (macOS)
@@ -257,25 +288,35 @@ jobs:
           flags: windows-ue58
           fail_ci_if_error: true
 
-      # 7a. Update Commit Status on Forgejo (Windows)
+       # 7a. Update Commit Status on Forgejo (Windows)
       - name: Update Forgejo Commit Status (Windows)
         if: always() && matrix.os == 'windows'
-        shell: cmd
+        shell: powershell
         env:
           FORGEJO_TOKEN: ${{ secrets.FORGEJO_TOKEN }}
         run: |
-          if "${{ job.status }}"=="success" (
-            set "STATE=success"
-            set "DESC=UE %UE_VERSION% build and tests passed on ${{ matrix.target_platform }}"
-          ) else (
-            set "STATE=failure"
-            set "DESC=UE %UE_VERSION% build or tests failed on ${{ matrix.target_platform }}"
-          )
+          $ErrorActionPreference = "Stop"
 
-          curl.exe -s -X POST "${{ github.api_url }}/repos/${{ github.repository }}/statuses/${{ github.sha }}" ^
-            -H "Authorization: token %FORGEJO_TOKEN%" ^
-            -H "Content-Type: application/json" ^
-            -d "{\"state\":\"%STATE%\",\"description\":\"%DESC%\",\"context\":\"CI / ${{ matrix.name }}\"}"
+          if ("${{ job.status }}" -eq "success") {
+            $state = "success"
+            $desc  = "UE $($env:UE_VERSION) build and tests passed on ${{ matrix.target_platform }}"
+          } else {
+            $state = "failure"
+            $desc  = "UE $($env:UE_VERSION) build or tests failed on ${{ matrix.target_platform }}"
+          }
+
+          $uri = "${{ github.api_url }}/repos/${{ github.repository }}/statuses/${{ github.sha }}"
+          $headers = @{
+            Authorization = "token $($env:FORGEJO_TOKEN)"
+          }
+          $body = @{
+            state       = $state
+            description = $desc
+            context     = "CI / ${{ matrix.name }}"
+          } | ConvertTo-Json -Compress
+
+          Invoke-RestMethod -Uri $uri -Method Post -Headers $headers -ContentType "application/json" -Body $body
+
 
       # 7b. Update Commit Status on Forgejo (macOS)
       - name: Update Forgejo Commit Status (macOS)
