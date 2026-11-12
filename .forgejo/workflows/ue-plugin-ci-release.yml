@@ -53,13 +53,12 @@ jobs:
       # 0. Install Dependencies (Native per OS)
       - name: Install Dependencies (Windows)
         if: matrix.os == 'windows'
-        shell: cmd
+        shell: pwsh
         run: |
-          where git-lfs >nul 2>nul
-          if %errorlevel% neq 0 (
+          if (-not (Get-Command git-lfs -ErrorAction SilentlyContinue)) {
             winget install -e --id GitHub.GitLFS --accept-package-agreements --accept-source-agreements
-          )
-          git lfs install
+          }
+        git lfs install
 
       - name: Install Dependencies (macOS)
         if: matrix.os == 'macos'
