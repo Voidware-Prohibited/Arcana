@@ -56,9 +56,10 @@ jobs:
           fetch-depth: 0 # Full git history required for accurate changelog generation
 
       - name: Install PowerShell Core
-        shell: cmd
+        shell: powershell
         run: |
           winget install --id Microsoft.PowerShell --source winget --accept-package-agreements --accept-source-agreements --silent
+          echo "$env:ProgramFiles\PowerShell\7" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
       - name: Set Engine Paths (Windows Registry)
         if: matrix.os != 'macos'
