@@ -1,14 +1,14 @@
-name: Cross-platform Unreal Engine Plugin CI
+name: Cross-platform Unreal Plugin CI for Releases
 
 on:
   push:
-    branches: [ main, dev ]
+    branches: [ main, dev ] # Add all branches to be tested here
     tags:
-        - 'v*'
+      - 'v*'
   pull_request:
-    branches: [ main, dev ]
+    branches: [ main, dev ] # Add all branches to be tested here
     tags:
-        - 'v*'
+      - 'v*'
 
 env:
   # Single version variable used across the entire workflow to locate the engine
@@ -53,17 +53,60 @@ jobs:
         uses: actions/checkout@v4
         with:
           path: ${{ env.PLUGIN_NAME }}
+          fetch-depth: 0 # Full git history required for accurate changelog generation
 
-      - name: Set Engine Paths
+      - name: Set Engine Paths (Windows Registry)
+        if: matrix.os != 'macos'
+        id: win_paths
+        shell: pwsh
+        run: |
+          $version = "${{ env.UE_VERSION }}"
+          $regPath = "HKLM:\SOFTWARE\EpicGames\Unreal Engine\$version"
+          $engineDir = $null
+
+          if (Test-Path $regPath) {
+            $engineDir = (Get-ItemProperty -Path $regPath -Name "InstalledDirectory" -ErrorAction SilentlyContinue).InstalledDirectory
+          }
+
+          # Fallback to user-registered source/custom engine builds
+          if (-not $engineDir) {
+            $buildsPath = "HKCU:\SOFTWARE\EpicGames\Unreal Engine\Builds"
+            if (Test-Path $buildsPath) {
+              $engineDir = (Get-ItemProperty -Path $buildsPath -Name $version -ErrorAction SilentlyContinue).$version
+            }
+          }
+
+          if (-not $engineDir -or -not (Test-Path $engineDir)) {
+            Write-Error "Could not locate Unreal Engine $version in Windows Registry."
+            exit 1
+          }
+
+          # Normalize backslashes to forward slashes for cross-shell compatibility
+          $engineDir = $engineDir.TrimEnd('\', '/') -replace '\\', '/'
+          Write-Host "Found UE $version at: $engineDir"
+
+          "UAT_PATH=$engineDir/Engine/Build/BatchFiles/RunUAT.bat" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "EDITOR_PATH=$engineDir/Engine/Binaries/Win64/UnrealEditor-Cmd.exe" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+      - name: Set Engine Paths (macOS)
+        if: matrix.os == 'macos'
+        id: mac_paths
+        shell: bash
+        run: |
+          ENGINE_DIR="/Users/Shared/Epic Games/UE_${{ env.UE_VERSION }}"
+          echo "UAT_PATH=${ENGINE_DIR}/Engine/Build/BatchFiles/RunUAT.sh" >> $GITHUB_OUTPUT
+          echo "EDITOR_PATH=${ENGINE_DIR}/Engine/Binaries/Mac/UnrealEditor-Cmd" >> $GITHUB_OUTPUT
+
+      - name: Resolve Active Engine Paths
         id: paths
         shell: bash
         run: |
           if [ "${{ matrix.os }}" = "macos" ]; then
-            echo "UAT_PATH=/Users/Shared/Epic Games/UE_${{ env.UE_VERSION }}/Engine/Build/BatchFiles/RunUAT.sh" >> $GITHUB_OUTPUT
-            echo "EDITOR_PATH=/Users/Shared/Epic Games/UE_${{ env.UE_VERSION }}/Engine/Binaries/Mac/UnrealEditor-Cmd" >> $GITHUB_OUTPUT
+            echo "UAT_PATH=${{ steps.mac_paths.outputs.UAT_PATH }}" >> $GITHUB_OUTPUT
+            echo "EDITOR_PATH=${{ steps.mac_paths.outputs.EDITOR_PATH }}" >> $GITHUB_OUTPUT
           else
-            echo "UAT_PATH=C:/Program Files/Epic Games/UE_${{ env.UE_VERSION }}/Engine/Build/BatchFiles/RunUAT.bat" >> $GITHUB_OUTPUT
-            echo "EDITOR_PATH=C:/Program Files/Epic Games/UE_${{ env.UE_VERSION }}/Engine/Binaries/Win64/UnrealEditor-Cmd.exe" >> $GITHUB_OUTPUT
+            echo "UAT_PATH=${{ steps.win_paths.outputs.UAT_PATH }}" >> $GITHUB_OUTPUT
+            echo "EDITOR_PATH=${{ steps.win_paths.outputs.EDITOR_PATH }}" >> $GITHUB_OUTPUT
           fi
 
       - name: Build Plugin (RunUAT)
@@ -75,8 +118,7 @@ jobs:
             -TargetPlatforms=${{ matrix.target_platform }} \
             -Rocket
 
-      - name: Create Host Project for Automation Tests
-        if: matrix.run_tests == true
+      - name: Create Host Project
         shell: bash
         run: |
           mkdir -p HostProject/Plugins
@@ -131,5 +173,5 @@ jobs:
         uses: codecov/codecov-action@v4
         with:
           files: ./coverage.xml
-          token: ${{ env.CODECOV_TOKEN }}
+          token: ${{ secrets.CODECOV_TOKEN }}
           fail_ci_if_error: true
