@@ -55,6 +55,8 @@ jobs:
             run_linux_tests: false
 
     steps:
+      - name: Install Git LFS
+        run: choco install git-lfs -y
       # 1. Checkout Plugin Code
       - name: Checkout Plugin Code
         uses: actions/checkout@v4
