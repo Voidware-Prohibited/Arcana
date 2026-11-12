@@ -71,10 +71,12 @@ jobs:
 
       # 1. Checkout Plugin Code
       - name: Checkout Plugin Code
-        uses: actions/checkout@v4
-        with:
-          path: plugin-src
-          lfs: true
+        shell: powershell
+        run: |
+          git clone --depth 1 "${{ github.server_url }}/${{ github.repository }}.git" plugin-src
+          cd plugin-src
+          git checkout "${{ github.sha }}"
+          git lfs pull
 
       # 2a. Build Plugin via RunUAT (Windows)
       - name: Build Plugin (Windows)
