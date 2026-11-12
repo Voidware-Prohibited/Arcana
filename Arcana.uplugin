@@ -54,10 +54,6 @@
 		{
 			"Name": "PCG",
 			"Enabled": true
-		},
-		{
-			"Name": "ProceduralVolumeWithFalloff",
-			"Enabled": true
 		}
 	]
 }
