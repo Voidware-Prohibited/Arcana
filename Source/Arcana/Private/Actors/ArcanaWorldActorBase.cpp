@@ -3,6 +3,7 @@
 
 #include "Actors/ArcanaWorldActorBase.h"
 #include "AbilitySystemComponent.h"
+#include "Components/StaticMeshComponent.h" 
 
 
 // Sets default values
