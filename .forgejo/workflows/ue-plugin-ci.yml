@@ -67,6 +67,11 @@ jobs:
           path: plugin-src
           lfs: true
 
+      - name: Setup MSYS2
+        uses: https://github.com
+        with:
+          update: false
+
       # 2. Build Plugin via RunUAT (Unified Windows & macOS)
       - name: Build Plugin
         run: |
