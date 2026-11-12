@@ -29,21 +29,21 @@ jobs:
         include:
           - name: Windows
             os: windows
-            runner: ${{ env.WINDOWS_TAGS }}
+            runner: win-linux-cross
             target_platform: Win64
             run_tests: true
             is_windows: true
 
           - name: Linux (Cross-Compile)
             os: linux-cross
-            runner: ${{ env.WINDOWS_TAGS }}
+            runner: win-linux-cross
             target_platform: Linux
             run_tests: false # Cannot execute Linux binaries directly on Windows host
             is_windows: false
 
           - name: macOS
             os: macos
-            runner: ${{ env.MACOS_TAGS }}
+            runner: macos
             target_platform: Mac
             run_tests: true
             is_windows: false
