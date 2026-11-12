@@ -66,12 +66,11 @@ jobs:
           path: plugin-src
           lfs: true
           
-      - name: Install MSYS2 archive
+      - name: Install MSYS2 via git
         shell: bash
         run: |
-          curl -fSL -o msys2.tar.xz https://msys2.org
-          tar -xJf msys2.tar.xz -C /c
-          rm msys2.tar.xz
+          git clone --depth 1 --filter=blob:none --sparse https://github.com /c/msys64
+          git -C /c/msys64 sparse-checkout set usr/bin/cygpath.exe usr/bin/msys-2.0.dll
           echo "/c/msys64/usr/bin" >> "$GITHUB_PATH"
 
       # 2. Build Plugin via RunUAT (Unified Windows & macOS)
