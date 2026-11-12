@@ -200,7 +200,7 @@ jobs:
               -platform=Win64 `
               -configuration=Development `
               -build=editor `
-              -test=UE.EditorAutomation `
+              -test=UnrealTest.EditorAutomation `
               -RunTest="$($env:TESTS_FILTER)" `
               -ReportExportPath="$reportDir" `
               -unattended -nop4 -nosplash -nullrhi
@@ -262,7 +262,7 @@ jobs:
             -platform=Mac \
             -configuration=Development \
             -build=editor \
-            -test=UE.EditorAutomation \
+            -test=UnrealTest.EditorAutomation \
             -RunTest="$TESTS_FILTER" \
             -ReportExportPath="$REPORT_DIR" \
             -unattended -nop4 -nosplash -nullrhi
