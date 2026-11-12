@@ -59,26 +59,21 @@ jobs:
         run: apt-get update && apt-get install -y unzip
       - name: Install Git LFS
         run: apt update && apt install -y git git-lfs && git lfs install
+
       # 1. Checkout Plugin Code
       - name: Checkout Plugin Code
         uses: actions/checkout@v4
         with:
           path: plugin-src
           lfs: true
-          
-      - name: Install MSYS2 via git
-        shell: bash
-        run: |
-          git clone --depth 1 --filter=blob:none --sparse https://github.com /c/msys64
-          git -C /c/msys64 sparse-checkout set usr/bin/cygpath.exe usr/bin/msys-2.0.dll
-          echo "/c/msys64/usr/bin" >> "$GITHUB_PATH"
 
       # 2. Build Plugin via RunUAT (Unified Windows & macOS)
       - name: Build Plugin
+        shell: bash
         run: |
-          if [ "${{ matrix.os }}" == "windows" ]; then
+          if [ "${{ matrix.os }}" = "windows" ]; then
             RUN_UAT="$WIN_UE_ROOT/Engine/Build/BatchFiles/RunUAT.bat"
-            WORK_DIR=$(cygpath -w "$PWD")
+            WORK_DIR=$(pwd -W | tr '/' '\\')
             PLUGIN_FILE="$WORK_DIR\\plugin-src\\$PLUGIN_NAME.uplugin"
             PACKAGE_DIR="$WORK_DIR\\packaged-plugin"
           else
