@@ -1,153 +1,224 @@
-name: Cross-platform Unreal Plugin CI for Releases
+name: UE 5.8 Plugin Build & Test
 
 on:
   push:
-    branches: [ main, dev ] # Add all branches to be tested here
+    branches: [ main, develop ]
     tags:
       - 'v*'
   pull_request:
-    branches: [ main, dev ] # Add all branches to be tested here
+    branches: [ main, develop ]
     tags:
       - 'v*'
+  workflow_dispatch:
 
+# Top-level configuration variables
 env:
-  # Single version variable used across the entire workflow to locate the engine
   UE_VERSION: "5.8"
   PLUGIN_NAME: "Arcana"
-  TEST_FILTER: "Arcana"
-  WINDOWS_TAGS: "win-linux-cross"
-  MACOS_TAGS: "macos"
+  TESTS_FILTER: "Arcana."
+  # Use forward slashes for Git Bash compatibility on Windows
+  WIN_UE_ROOT: "D:/DEV/UE5/UE_5.8"
+  MAC_UE_ROOT: "/Users/Shared/Epic Games/UE_5.8"
+  OPENCPP_PATH: "C:/Program Files/OpenCppCoverage/OpenCppCoverage.exe"
   CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
 jobs:
   build-and-test:
-    name: ${{ matrix.name }} (UE ${{ env.UE_VERSION }})
-    runs-on: ${{ matrix.runner }}
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.runs-on }}
+    defaults:
+      run:
+        shell: bash
     strategy:
       fail-fast: false
       matrix:
         include:
-          - name: Windows
+          - name: "Windows (Native)"
             os: windows
-            runner: win-linux-cross
+            runs-on: win-linux-cross
             target_platform: Win64
-            run_tests: true
-            is_windows: true
+            run_coverage: true
+            run_linux_tests: false
 
-          - name: Linux (Cross-Compile)
-            os: linux-cross
-            runner: win-linux-cross
+          - name: "Linux (Cross-Compiled on Windows)"
+            os: windows
+            runs-on: win-linux-cross
             target_platform: Linux
-            run_tests: false # Cannot execute Linux binaries directly on Windows host
-            is_windows: false
+            run_coverage: false
+            run_linux_tests: true
 
-          - name: macOS
+          - name: "macOS (Native)"
             os: macos
-            runner: macos
+            runs-on: macos
             target_platform: Mac
-            run_tests: true
-            is_windows: false
+            run_coverage: false
+            run_linux_tests: false
 
     steps:
+      # 1. Checkout Plugin Code
       - name: Checkout Plugin Code
         uses: actions/checkout@v4
         with:
-          path: ${{ env.PLUGIN_NAME }}
-          fetch-depth: 0 # Full git history required for accurate changelog generation
+          path: plugin-src
+          lfs: true
 
-      - name: Set Engine Paths (Windows Registry)
-        if: matrix.os != 'macos'
-        id: win_paths
-        shell: bash
+      # 2. Build Plugin via RunUAT (Unified Windows & macOS)
+      - name: Build Plugin
         run: |
-          ENGINE_DIR="D:/DEV/UE5/UE_5.8"
-          echo "UAT_PATH=D:/DEV/UE5/UE_5.8/Engine/Build/BatchFiles/RunUAT.sh" >> $GITHUB_OUTPUT
-          echo "EDITOR_PATH=D:/DEV/UE5/UE_5.8/Engine/Binaries/Win64/UnrealEditor-Cmd.exe" >> $GITHUB_OUTPUT
-
-      - name: Set Engine Paths (macOS)
-        if: matrix.os == 'macos'
-        id: mac_paths
-        shell: bash
-        run: |
-          ENGINE_DIR="/Users/Shared/Epic Games/UE_${{ env.UE_VERSION }}"
-          echo "UAT_PATH=${ENGINE_DIR}/Engine/Build/BatchFiles/RunUAT.sh" >> $GITHUB_OUTPUT
-          echo "EDITOR_PATH=${ENGINE_DIR}/Engine/Binaries/Mac/UnrealEditor-Cmd" >> $GITHUB_OUTPUT
-
-      - name: Resolve Active Engine Paths
-        id: paths
-        shell: bash
-        run: |
-          if [ "${{ matrix.os }}" = "macos" ]; then
-            echo "UAT_PATH=${{ steps.mac_paths.outputs.UAT_PATH }}" >> $GITHUB_OUTPUT
-            echo "EDITOR_PATH=${{ steps.mac_paths.outputs.EDITOR_PATH }}" >> $GITHUB_OUTPUT
+          if [ "${{ matrix.os }}" == "windows" ]; then
+            RUN_UAT="$WIN_UE_ROOT/Engine/Build/BatchFiles/RunUAT.bat"
+            WORK_DIR=$(cygpath -w "$PWD")
+            PLUGIN_FILE="$WORK_DIR\\plugin-src\\$PLUGIN_NAME.uplugin"
+            PACKAGE_DIR="$WORK_DIR\\packaged-plugin"
           else
-            echo "UAT_PATH=${{ steps.win_paths.outputs.UAT_PATH }}" >> $GITHUB_OUTPUT
-            echo "EDITOR_PATH=${{ steps.win_paths.outputs.EDITOR_PATH }}" >> $GITHUB_OUTPUT
+            RUN_UAT="$MAC_UE_ROOT/Engine/Build/BatchFiles/RunUAT.sh"
+            PLUGIN_FILE="$PWD/plugin-src/$PLUGIN_NAME.uplugin"
+            PACKAGE_DIR="$PWD/packaged-plugin"
           fi
 
-      - name: Build Plugin (RunUAT)
-        shell: bash
-        run: |
-          "${{ steps.paths.outputs.UAT_PATH }}" BuildPlugin \
-            -Plugin="${{ github.workspace }}/${{ env.PLUGIN_NAME }}/${{ env.PLUGIN_NAME }}.uplugin" \
-            -Package="${{ github.workspace }}/PackagedPlugin_${{ matrix.target_platform }}" \
+          "$RUN_UAT" BuildPlugin \
+            -Plugin="$PLUGIN_FILE" \
+            -Package="$PACKAGE_DIR" \
             -TargetPlatforms=${{ matrix.target_platform }} \
             -Rocket
 
+      # 3. Create Blank C++ Host Project & Install Packaged Plugin (Unified)
       - name: Create Host Project
-        shell: bash
         run: |
-          mkdir -p HostProject/Plugins
-          cp -r "PackagedPlugin_${{ matrix.target_platform }}" "HostProject/Plugins/${{ env.PLUGIN_NAME }}"
-          cat << 'EOF' > HostProject/HostProject.uproject
+          HOST_DIR="$PWD/HostProject"
+          mkdir -p "$HOST_DIR/Plugins/$PLUGIN_NAME"
+          cp -R "$PWD/packaged-plugin/"* "$HOST_DIR/Plugins/$PLUGIN_NAME/"
+
+          cat <<EOF > "$HOST_DIR/HostProject.uproject"
           {
             "FileVersion": 3,
-            "EngineAssociation": "${{ env.UE_VERSION }}",
+            "EngineAssociation": "$UE_VERSION",
+            "Category": "",
+            "Description": "",
             "Plugins": [
               {
-                "Name": "${{ env.PLUGIN_NAME }}",
+                "Name": "$PLUGIN_NAME",
                 "Enabled": true
               }
             ]
           }
           EOF
 
-      - name: Run Automation Tests & Code Coverage (Windows)
-        if: matrix.is_windows == true && matrix.run_tests == true
-        shell: pwsh
+      # 4a. Run UAT Automation Tests + OpenCppCoverage (Native Windows Only)
+      - name: Run UAT Automation Tests & OpenCppCoverage (Native Windows)
+        if: matrix.run_coverage == true
         run: |
-          OpenCppCoverage.exe `
-            --sources "${{ github.workspace }}\${{ env.PLUGIN_NAME }}\Source" `
-            --modules "${{ github.workspace }}\HostProject\Plugins\${{ env.PLUGIN_NAME }}\Binaries\Win64" `
-            --excluded_sources "*\Intermediate\*" `
-            --excluded_sources "*\Tests\*" `
-            --export_type cobertura:coverage.xml `
-            --cover_children `
-            -- "${{ steps.paths.outputs.EDITOR_PATH }}" `
-               "${{ github.workspace }}\HostProject\HostProject.uproject" `
-               -ExecCmds="Automation RunTests ${{ env.TEST_FILTER }}; Quit" `
-               -unattended -nopause -nosplash -nullrhi -stdout
+          WORK_DIR=$(cygpath -w "$PWD")
+          RUN_UAT="$WIN_UE_ROOT/Engine/Build/BatchFiles/RunUAT.bat"
+          PROJECT_FILE="$WORK_DIR\\HostProject\\HostProject.uproject"
+          REPORT_DIR="$WORK_DIR\\TestReports"
+          COVERAGE_FILE="$WORK_DIR\\coverage.xml"
+          SOURCES_DIR="$WORK_DIR\\HostProject\\Plugins\\$PLUGIN_NAME\\Source"
+          mkdir -p "$PWD/TestReports"
 
-      - name: Run Automation Tests (macOS)
-        if: matrix.is_windows == false && matrix.run_tests == true
-        shell: bash
+          # MSYS_NO_PATHCONV prevents Git Bash from mangling Windows flags/paths
+          MSYS_NO_PATHCONV=1 "$OPENCPP_PATH" \
+            --sources="$SOURCES_DIR" \
+            --modules="UnrealEditor-$PLUGIN_NAME*.dll" \
+            --export_type="cobertura:$COVERAGE_FILE" \
+            --cover_children \
+            -- \
+            "$RUN_UAT" RunUnreal \
+              -project="$PROJECT_FILE" \
+              -platform=Win64 \
+              -configuration=Development \
+              -build=editor \
+              -test=UE.EditorAutomation \
+              -RunTest="$TESTS_FILTER" \
+              -ReportExportPath="$REPORT_DIR" \
+              -unattended -nop4 -nosplash -nullrhi
+
+      # 4b. Run Automated Tests (Linux Cross-Compiled on Windows via WSL2)
+      - name: Run Automated Tests (Linux via WSL2)
+        if: matrix.run_linux_tests == true
         run: |
-          "${{ steps.paths.outputs.EDITOR_PATH }}" \
-            "${{ github.workspace }}/HostProject/HostProject.uproject" \
-            -ExecCmds="Automation RunTests ${{ env.TEST_FILTER }}; Quit" \
-            -unattended -nopause -nosplash -nullrhi -stdout
+          WORK_DIR=$(cygpath -w "$PWD")
+          RUN_UAT="$WIN_UE_ROOT/Engine/Build/BatchFiles/RunUAT.bat"
+          PROJECT_FILE="$WORK_DIR\\HostProject\\HostProject.uproject"
+          REPORT_DIR="$WORK_DIR\\TestReports"
+          mkdir -p "$PWD/TestReports"
 
-      - name: Upload Packaged Plugin Artifact (Windows Only)
-        if: matrix.is_windows == true
+          MSYS_NO_PATHCONV=1 "$RUN_UAT" BuildCookRun \
+            -project="$PROJECT_FILE" \
+            -platform=Linux \
+            -clientconfig=Development \
+            -build -cook -stage -pak -unattended -nop4
+
+          WSL_PROJECT_PATH=$(wsl wslpath -a "$PROJECT_FILE")
+          WSL_REPORT_PATH=$(wsl wslpath -a "$REPORT_DIR")
+          WSL_BIN_PATH=$(wsl wslpath -a "$WORK_DIR\\HostProject\\Saved\\StagedBuilds\\Linux\\HostProject\\Binaries\\Linux\\HostProject")
+
+          MSYS_NO_PATHCONV=1 wsl "$WSL_BIN_PATH" \
+            "$WSL_PROJECT_PATH" \
+            -ExecCmds="Automation RunTests $TESTS_FILTER; Quit" \
+            -ReportExportPath="$WSL_REPORT_PATH" \
+            -unattended -nop4 -nosplash -nullrhi
+
+      # 4c. Run Automated Tests (macOS)
+      - name: Run Automated Tests (macOS)
+        if: matrix.os == 'macos'
+        run: |
+          RUN_UAT="$MAC_UE_ROOT/Engine/Build/BatchFiles/RunUAT.sh"
+          PROJECT_FILE="$PWD/HostProject/HostProject.uproject"
+          REPORT_DIR="$PWD/TestReports"
+          mkdir -p "$REPORT_DIR"
+
+          "$RUN_UAT" RunUnreal \
+            -project="$PROJECT_FILE" \
+            -platform=Mac \
+            -configuration=Development \
+            -build=editor \
+            -test=UE.EditorAutomation \
+            -RunTest="$TESTS_FILTER" \
+            -ReportExportPath="$REPORT_DIR" \
+            -unattended -nop4 -nosplash -nullrhi
+
+      # 5. Upload Artifacts
+      - name: Upload Build & Test Artifacts
+        if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.PLUGIN_NAME }}-UE${{ env.UE_VERSION }}-Win64
-          path: PackagedPlugin_Win64/
+          name: ${{ matrix.target_platform }}-Build-And-Reports
+          path: |
+            packaged-plugin/
+            TestReports/
+            coverage.xml
 
-      - name: Upload Coverage to Codecov (Windows Only)
-        if: matrix.is_windows == true
+      # 6. Upload Coverage to Codecov (Native Windows Only)
+      - name: Upload Coverage to Codecov
+        if: matrix.run_coverage == true && success()
         uses: codecov/codecov-action@v4
         with:
+          token: ${{ env.CODECOV_TOKEN }}
           files: ./coverage.xml
-          token: ${{ secrets.CODECOV_TOKEN }}
+          flags: windows-ue58
           fail_ci_if_error: true
+
+      # 7. Update Commit Status on Forgejo
+      - name: Update Forgejo Commit Status
+        if: always()
+        env:
+          FORGEJO_TOKEN: ${{ secrets.FORGEJO_TOKEN }}
+        run: |
+          if [ "${{ job.status }}" == "success" ]; then
+            STATE="success"
+            DESC="UE $UE_VERSION build and tests passed on ${{ matrix.target_platform }}"
+          else
+            STATE="failure"
+            DESC="UE $UE_VERSION build or tests failed on ${{ matrix.target_platform }}"
+          fi
+
+          curl -s -X POST "${{ github.api_url }}/repos/${{ github.repository }}/statuses/${{ github.sha }}" \
+            -H "Authorization: token $FORGEJO_TOKEN" \
+            -H "Content-Type: application/json" \
+            -d "{
+              \"state\": \"$STATE\",
+              \"target_url\": \"${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}\",
+              \"description\": \"$DESC\",
+              \"context\": \"ci/ue-${{ matrix.target_platform }}\"
+            }"
