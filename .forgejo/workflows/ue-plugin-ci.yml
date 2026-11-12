@@ -69,7 +69,7 @@ jobs:
 
       # 2. Build Plugin via RunUAT (Unified Windows & macOS)
       - name: Build Plugin
-        shell: bash
+        shell: cmd
         run: |
           if [ "${{ matrix.os }}" = "windows" ]; then
             RUN_UAT="$WIN_UE_ROOT/Engine/Build/BatchFiles/RunUAT.bat"
