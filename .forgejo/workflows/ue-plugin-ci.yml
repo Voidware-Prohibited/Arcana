@@ -1,77 +1,135 @@
-name: Cross-platform Unreal Plugin CI
+name: Cross-platform Unreal Engine Plugin CI
 
 on:
   push:
-    branches: [ stable ] # Add all branches to be tested here
-    tags:
+  tags:
       - 'v*'
+    branches: [ main, dev ]
   pull_request:
-    branches: [ stable ]
+  branches: [ main, dev ]
     tags:
       - 'v*'
 
 env:
-  # --- Configuration Variables ---
-  PLUGIN_NAME: "Arcana" # Change to .uplugin name
+  # Single version variable used across the entire workflow to locate the engine
   UE_VERSION: "5.8"
-  # Paths must match your self-hosted runner environment
-  UE_PATH_WIN: "C:/Program Files/Epic Games/UE_${{ env.UE_VERSION }}"
-  UE_PATH_LINUX: "C:/Program Files/Epic Games/UE_${{ env.UE_VERSION }}"
-  UE_PATH_MAC: "/Users/Shared/Epic Games/UE_${{ env.UE_VERSION }}"
-  # Codecov Token (Add to Forgejo Secrets)
+  PLUGIN_NAME: "Arcana"
+  TEST_FILTER: "Arcana"
+  WINDOWS_TAGS: "win-linux-cross"
+  MACOS_TAGS: "macos"
   CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
 jobs:
   build-and-test:
-    name: Build & Test (${{ matrix.os }})
-    runs-on: ${{ matrix.os }}
+    name: ${{ matrix.name }} (UE ${{ env.UE_VERSION }})
+    runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
       matrix:
         include:
-          - os: windows
-            runuat: 'Engine/Build/BatchFiles/RunUAT.bat'
-            ue_path: "C:/Program Files/Epic Games/UE_${{ env.UE_VERSION }}"
-          - os: linux
-            runuat: 'Engine/Build/BatchFiles/RunUAT.bat'
-            ue_path: "C:/Program Files/Epic Games/UE_${{ env.UE_VERSION }}"
-          - os: macos
-            runuat: 'Engine/Build/BatchFiles/RunUAT.sh'
-            ue_path: "/Users/Shared/Epic Games/UE_${{ env.UE_VERSION }}"
+          - name: Windows
+            os: windows
+            runner: ${{ env.WINDOWS_TAGS }}
+            target_platform: Win64
+            run_tests: true
+            is_windows: true
+
+          - name: Linux (Cross-Compile)
+            os: linux-cross
+            runner: ${{ env.WINDOWS_TAGS }}
+            target_platform: Linux
+            run_tests: false # Cannot execute Linux binaries directly on Windows host
+            is_windows: false
+
+          - name: macOS
+            os: macos
+            runner: ${{ env.MACOS_TAGS }}
+            target_platform: Mac
+            run_tests: true
+            is_windows: false
 
     steps:
-      - name: Checkout Code
+      - name: Checkout Plugin Code
         uses: actions/checkout@v4
+        with:
+          path: ${{ env.PLUGIN_NAME }}
 
-      - name: Build Plugin
+      - name: Set Engine Paths
+        id: paths
+        shell: bash
         run: |
-          "${{ matrix.ue_path }}/${{ matrix.runuat }}" BuildPlugin \
-          -Plugin="${{ github.workspace }}/${{ env.PLUGIN_NAME }}.uplugin" \
-          -Package="${{ github.workspace }}/Build" -Rocket
+          if [ "${{ matrix.os }}" = "macos" ]; then
+            echo "UAT_PATH=/Users/Shared/Epic Games/UE_${{ env.UE_VERSION }}/Engine/Build/BatchFiles/RunUAT.sh" >> $GITHUB_OUTPUT
+            echo "EDITOR_PATH=/Users/Shared/Epic Games/UE_${{ env.UE_VERSION }}/Engine/Binaries/Mac/UnrealEditor-Cmd" >> $GITHUB_OUTPUT
+          else
+            echo "UAT_PATH=C:/Program Files/Epic Games/UE_${{ env.UE_VERSION }}/Engine/Build/BatchFiles/RunUAT.bat" >> $GITHUB_OUTPUT
+            echo "EDITOR_PATH=C:/Program Files/Epic Games/UE_${{ env.UE_VERSION }}/Engine/Binaries/Win64/UnrealEditor-Cmd.exe" >> $GITHUB_OUTPUT
+          fi
 
-      - name: Run Automation Tests
-        # Runs the editor in "null" mode to execute tests without a UI
+      - name: Build Plugin (RunUAT)
+        shell: bash
         run: |
-          "${{ matrix.ue_path }}/Engine/Binaries/${{ matrix.os == 'windows' && 'Win64' || 'Linux' }}/UnrealEditor-Cmd" \
-          "${{ github.workspace }}/TestProject/TestProject.uproject" \
-          -ExecCmds="Automation RunTests ${{ env.PLUGIN_NAME }}" \
-          -unattended -nopause -testexit="All tests passed" -log -log=TestLog.txt
+          "${{ steps.paths.outputs.UAT_PATH }}" BuildPlugin \
+            -Plugin="${{ github.workspace }}/${{ env.PLUGIN_NAME }}/${{ env.PLUGIN_NAME }}.uplugin" \
+            -Package="${{ github.workspace }}/PackagedPlugin_${{ matrix.target_platform }}" \
+            -TargetPlatforms=${{ matrix.target_platform }} \
+            -Rocket
 
-      - name: Generate Coverage Report (Windows Only)
-        if: matrix.os == 'windows'
+      - name: Create Host Project for Automation Tests
+        if: matrix.run_tests == true
+        shell: bash
         run: |
-          # Requires OpenCppCoverage installed on the runner
-          & "C:\Program Files\OpenCppCoverage\OpenCppCoverage.exe" \
-          --sources "${{ github.workspace }}\Source" \
-          -- "${{ matrix.ue_path }}\Engine\Binaries\Win64\UnrealEditor-Cmd.exe" `
-          "${{ github.workspace }}\TestProject\TestProject.uproject" `
-          -ExecCmds="Automation RunTests ${{ env.PLUGIN_NAME }}" -unattended -nopause
+          mkdir -p HostProject/Plugins
+          cp -r "PackagedPlugin_${{ matrix.target_platform }}" "HostProject/Plugins/${{ env.PLUGIN_NAME }}"
+          cat << 'EOF' > HostProject/HostProject.uproject
+          {
+            "FileVersion": 3,
+            "EngineAssociation": "${{ env.UE_VERSION }}",
+            "Plugins": [
+              {
+                "Name": "${{ env.PLUGIN_NAME }}",
+                "Enabled": true
+              }
+            ]
+          }
+          EOF
 
-      - name: Upload Logs
-        if: always()
+      - name: Run Automation Tests & Code Coverage (Windows)
+        if: matrix.is_windows == true && matrix.run_tests == true
+        shell: pwsh
+        run: |
+          OpenCppCoverage.exe `
+            --sources "${{ github.workspace }}\${{ env.PLUGIN_NAME }}\Source" `
+            --modules "${{ github.workspace }}\HostProject\Plugins\${{ env.PLUGIN_NAME }}\Binaries\Win64" `
+            --excluded_sources "*\Intermediate\*" `
+            --excluded_sources "*\Tests\*" `
+            --export_type cobertura:coverage.xml `
+            --cover_children `
+            -- "${{ steps.paths.outputs.EDITOR_PATH }}" `
+               "${{ github.workspace }}\HostProject\HostProject.uproject" `
+               -ExecCmds="Automation RunTests ${{ env.TEST_FILTER }}; Quit" `
+               -unattended -nopause -nosplash -nullrhi -stdout
+
+      - name: Run Automation Tests (macOS)
+        if: matrix.is_windows == false && matrix.run_tests == true
+        shell: bash
+        run: |
+          "${{ steps.paths.outputs.EDITOR_PATH }}" \
+            "${{ github.workspace }}/HostProject/HostProject.uproject" \
+            -ExecCmds="Automation RunTests ${{ env.TEST_FILTER }}; Quit" \
+            -unattended -nopause -nosplash -nullrhi -stdout
+
+      - name: Upload Packaged Plugin Artifact (Windows Only)
+        if: matrix.is_windows == true
         uses: actions/upload-artifact@v4
         with:
-          name: logs-${{ matrix.os }}
-          path: |
-            TestLog.txt
-            Saved/Logs/
+          name: ${{ env.PLUGIN_NAME }}-UE${{ env.UE_VERSION }}-Win64
+          path: PackagedPlugin_Win64/
+
+      - name: Upload Coverage to Codecov (Windows Only)
+        if: matrix.is_windows == true
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./coverage.xml
+          token: ${{ env.CODECOV_TOKEN }}
+          fail_ci_if_error: true

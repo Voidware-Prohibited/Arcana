@@ -7,95 +7,206 @@ on:
       - 'v*'
       - '!v*-alpha' # Excludes alpha tags
   pull_request:
-    branches: [ stable ]
+    branches: [ stable ] # Add all branches to be tested here
     tags:
       - 'v*'
       - '!v*-alpha' # Excludes alpha tags
 
-
 env:
-  # --- Configuration Variables ---
-  PLUGIN_NAME: "Arcana"
+  # Single version variable used across the entire workflow to locate the engine
   UE_VERSION: "5.8"
-  # Path to UE Engine installation (Adjust for each runner OS)
-  UE_PATH_WIN: "C:/EpicGames/UE_5.8"
-  UE_PATH_LINUX: "/home/runner/ue/UE_5.8"
-  UE_PATH_MAC: "/Users/Shared/EpicGames/UE_5.8"
-  # Codecov Token (Add to Forgejo Secrets)
+  PLUGIN_NAME: "Arcana"
+  TEST_FILTER: "Arcana"
+  WINDOWS_TAGS: "win-linux-cross"
+  MACOS_TAGS: "macos"
   CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
-  # ------------------------------
 
 jobs:
-  build-test-package:
-    name: UE Package (${{ matrix.os }})
-    runs-on: self-hosted, ${{ matrix.runner_label }}
+  build-and-test:
+    name: ${{ matrix.name }} (UE ${{ env.UE_VERSION }})
+    runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
       matrix:
         include:
-          - os: windows
-            runner_label: ue-win
-            ue_path: "C:/EpicGames/UE_5.8"
-            run_cmd: "RunUAT.bat"
-          - os: linux
-            runner_label: ue-linux
-            ue_path: "/home/runner/ue/UE_5.8"
-            run_cmd: "./RunUAT.sh"
-          - os: macos
-            runner_label: ue-mac
-            ue_path: "/Users/Shared/EpicGames/UE_5.8"
-            run_cmd: "./RunUAT.sh"
+          - name: Windows
+            os: windows
+            runner: win-linux-cross
+            target_platform: Win64
+            run_tests: true
+            is_windows: true
+
+          - name: Linux (Cross-Compile)
+            os: linux-cross
+            runner: win-linux-cross
+            target_platform: Linux
+            run_tests: false # Cannot execute Linux binaries directly on Windows host
+            is_windows: false
+
+          - name: macOS
+            os: macos
+            runner: macos
+            target_platform: Mac
+            run_tests: true
+            is_windows: false
 
     steps:
-      - name: Checkout
+      - name: Checkout Plugin Code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          path: ${{ env.PLUGIN_NAME }}
+          fetch-depth: 0 # Full git history required for accurate changelog generation
 
-      - name: Build and Test
+      - name: Set Engine Paths (Windows Registry)
+        if: matrix.os != 'macos'
+        id: win_paths
+        shell: pwsh
+        run: |
+          $version = "${{ env.UE_VERSION }}"
+          $regPath = "HKLM:\SOFTWARE\EpicGames\Unreal Engine\$version"
+          $engineDir = $null
+
+          if (Test-Path $regPath) {
+            $engineDir = (Get-ItemProperty -Path $regPath -Name "InstalledDirectory" -ErrorAction SilentlyContinue).InstalledDirectory
+          }
+
+          # Fallback to user-registered source/custom engine builds
+          if (-not $engineDir) {
+            $buildsPath = "HKCU:\SOFTWARE\EpicGames\Unreal Engine\Builds"
+            if (Test-Path $buildsPath) {
+              $engineDir = (Get-ItemProperty -Path $buildsPath -Name $version -ErrorAction SilentlyContinue).$version
+            }
+          }
+
+          if (-not $engineDir -or -not (Test-Path $engineDir)) {
+            Write-Error "Could not locate Unreal Engine $version in Windows Registry."
+            exit 1
+          }
+
+          # Normalize backslashes to forward slashes for cross-shell compatibility
+          $engineDir = $engineDir.TrimEnd('\', '/') -replace '\\', '/'
+          Write-Host "Found UE $version at: $engineDir"
+
+          "UAT_PATH=$engineDir/Engine/Build/BatchFiles/RunUAT.bat" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+          "EDITOR_PATH=$engineDir/Engine/Binaries/Win64/UnrealEditor-Cmd.exe" | Out-File -FilePath $env:GITHUB_OUTPUT -Append -Encoding utf8
+
+      - name: Set Engine Paths (macOS)
+        if: matrix.os == 'macos'
+        id: mac_paths
         shell: bash
         run: |
-          ${{ matrix.ue_path }}/Engine/Build/BatchFiles/${{ matrix.run_cmd }} BuildPlugin -Plugin=$GITHUB_WORKSPACE/${{ env.PLUGIN_NAME }}.uplugin -Package=$GITHUB_WORKSPACE/Build -TargetPlatforms=Win64+Linux+Mac
+          ENGINE_DIR="/Users/Shared/Epic Games/UE_${{ env.UE_VERSION }}"
+          echo "UAT_PATH=${ENGINE_DIR}/Engine/Build/BatchFiles/RunUAT.sh" >> $GITHUB_OUTPUT
+          echo "EDITOR_PATH=${ENGINE_DIR}/Engine/Binaries/Mac/UnrealEditor-Cmd" >> $GITHUB_OUTPUT
 
-      - name: Perform Coverage
-        if: matrix.os == 'linux' # Run coverage once to save resources
+      - name: Resolve Active Engine Paths
+        id: paths
+        shell: bash
         run: |
-          # Example using llvm-cov or specialized UE coverage tool
-          ${{ matrix.ue_path }}/Engine/Build/BatchFiles/${{ matrix.run_cmd }} RunTests -Plugin=$GITHUB_WORKSPACE/${{ env.PLUGIN_NAME }}.uplugin -Coverage
+          if [ "${{ matrix.os }}" = "macos" ]; then
+            echo "UAT_PATH=${{ steps.mac_paths.outputs.UAT_PATH }}" >> $GITHUB_OUTPUT
+            echo "EDITOR_PATH=${{ steps.mac_paths.outputs.EDITOR_PATH }}" >> $GITHUB_OUTPUT
+          else
+            echo "UAT_PATH=${{ steps.win_paths.outputs.UAT_PATH }}" >> $GITHUB_OUTPUT
+            echo "EDITOR_PATH=${{ steps.win_paths.outputs.EDITOR_PATH }}" >> $GITHUB_OUTPUT
+          fi
 
-      - name: Upload Coverage to Codecov
-        if: matrix.os == 'linux'
-        uses: codecov/codecov-action@v4
-        with:
-          token: ${{ env.CODECOV_TOKEN }}
-          files: ./coverage.xml
+      - name: Build Plugin (RunUAT)
+        shell: bash
+        run: |
+          "${{ steps.paths.outputs.UAT_PATH }}" BuildPlugin \
+            -Plugin="${{ github.workspace }}/${{ env.PLUGIN_NAME }}/${{ env.PLUGIN_NAME }}.uplugin" \
+            -Package="${{ github.workspace }}/PackagedPlugin_${{ matrix.target_platform }}" \
+            -TargetPlatforms=${{ matrix.target_platform }} \
+            -Rocket
 
-      - name: Upload Artifacts
+      - name: Create Host Project
+        shell: bash
+        run: |
+          mkdir -p HostProject/Plugins
+          cp -r "PackagedPlugin_${{ matrix.target_platform }}" "HostProject/Plugins/${{ env.PLUGIN_NAME }}"
+          cat << 'EOF' > HostProject/HostProject.uproject
+          {
+            "FileVersion": 3,
+            "EngineAssociation": "${{ env.UE_VERSION }}",
+            "Plugins": [
+              {
+                "Name": "${{ env.PLUGIN_NAME }}",
+                "Enabled": true
+              }
+            ]
+          }
+          EOF
+
+      - name: Run Automation Tests & Code Coverage (Windows)
+        if: matrix.is_windows == true && matrix.run_tests == true
+        shell: pwsh
+        run: |
+          OpenCppCoverage.exe `
+            --sources "${{ github.workspace }}\${{ env.PLUGIN_NAME }}\Source" `
+            --modules "${{ github.workspace }}\HostProject\Plugins\${{ env.PLUGIN_NAME }}\Binaries\Win64" `
+            --excluded_sources "*\Intermediate\*" `
+            --excluded_sources "*\Tests\*" `
+            --export_type cobertura:coverage.xml `
+            --cover_children `
+            -- "${{ steps.paths.outputs.EDITOR_PATH }}" `
+               "${{ github.workspace }}\HostProject\HostProject.uproject" `
+               -ExecCmds="Automation RunTests ${{ env.TEST_FILTER }}; Quit" `
+               -unattended -nopause -nosplash -nullrhi -stdout
+
+      - name: Run Automation Tests (macOS)
+        if: matrix.is_windows == false && matrix.run_tests == true
+        shell: bash
+        run: |
+          "${{ steps.paths.outputs.EDITOR_PATH }}" \
+            "${{ github.workspace }}/HostProject/HostProject.uproject" \
+            -ExecCmds="Automation RunTests ${{ env.TEST_FILTER }}; Quit" \
+            -unattended -nopause -nosplash -nullrhi -stdout
+
+      - name: Upload Packaged Plugin Artifact (Windows Only)
+        if: matrix.is_windows == true
         uses: actions/upload-artifact@v4
         with:
-          name: UE-Plugin-${{ matrix.os }}
-          path: ${{ github.workspace }}/Build
+          name: ${{ env.PLUGIN_NAME }}-UE${{ env.UE_VERSION }}-Win64
+          path: PackagedPlugin_Win64/
 
-  release:
-    needs: build-test-package
-    runs-on: linux
-    if: github.ref == 'refs/heads/main'
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+      - name: Upload Coverage to Codecov (Windows Only)
+        if: matrix.is_windows == true
+        uses: codecov/codecov-action@v4
         with:
-          fetch-depth: 0
+          files: ./coverage.xml
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: true
 
-      - name: Generate Changelog
-        uses: orhun/git-cliff-action@v3
-        id: git-cliff
-        with:
-          config: cliff.toml
-          args: --latest --strip header
-        env:
-          OUTPUT: CHANGELOG.md
-
-      - name: Update Status/Changelog
+      - name: Cook & Package Host Project (${{ matrix.target_platform }})
+        shell: bash
         run: |
-          git commit -m "chore: update changelog" CHANGELOG.md || echo "No changes"
-          git push
+          "${{ steps.paths.outputs.UAT_PATH }}" BuildCookRun \
+            -project="${{ github.workspace }}/HostProject/HostProject.uproject" \
+            -noP4 \
+            -platform=${{ matrix.target_platform }} \
+            -clientconfig=Development \
+            -cook -allmaps -build -stage -pak -archive \
+            -archivedirectory="${{ github.workspace }}/PackagedBuild_${{ matrix.target_platform }}" \
+            -unattended -utf8output
+
+      - name: Generate Changelog (${{ matrix.target_platform }})
+        shell: bash
+        run: |
+          cd "${{ github.workspace }}/${{ env.PLUGIN_NAME }}"
+          OUTPUT_FILE="${{ github.workspace }}/PackagedBuild_${{ matrix.target_platform }}/CHANGELOG_${{ matrix.target_platform }}.md"
+          LAST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+
+          echo "# Changelog - ${{ env.PLUGIN_NAME }} (${{ matrix.target_platform }} / UE ${{ env.UE_VERSION }})" > "$OUTPUT_FILE"
+          echo "" >> "$OUTPUT_FILE"
+          echo "**Build Date:** $(date -u +'%Y-%m-%d %H:%M:%S UTC')" >> "$OUTPUT_FILE"
+          echo "**Commit:** ${GITHUB_SHA::7}" >> "$OUTPUT_FILE"
+          echo "" >> "$OUTPUT_FILE"
+
+          if [ -z "$LAST_TAG" ]; then
+            echo "## Commits" >> "$OUTPUT_FILE"
+            git log --pretty=format:"* %s (%h) - %an" >> "$OUTPUT_FILE"
+          else
+            echo "## Changes since $LAST_TAG" >> "$OUTPUT_FILE"
+            git log "${LAST_TAG}..HEAD" --pretty=format:"* %s (%h) - %an" >> "$OUTPUT_FILE"
+          fi
