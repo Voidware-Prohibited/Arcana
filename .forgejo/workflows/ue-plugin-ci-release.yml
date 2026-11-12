@@ -66,10 +66,12 @@ jobs:
           path: plugin-src
           lfs: true
           
-      - name: Install MSYS2 via winget
+      - name: Install MSYS2 archive
         shell: bash
         run: |
-          winget.exe install --id MSYS2.MSYS2 --exact --silent --accept-package-agreements --accept-source-agreements
+          curl -fSL -o msys2.tar.xz https://msys2.org
+          tar -xJf msys2.tar.xz -C /c
+          rm msys2.tar.xz
           echo "/c/msys64/usr/bin" >> "$GITHUB_PATH"
 
       # 2. Build Plugin via RunUAT (Unified Windows & macOS)
