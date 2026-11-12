@@ -73,7 +73,18 @@ jobs:
         run: |
           if [ "${{ matrix.os }}" = "windows" ]; then
             RUN_UAT="$WIN_UE_ROOT/Engine/Build/BatchFiles/RunUAT.bat"
-            WORK_DIR=$(pwd -W | tr '/' '\\')
+            WORK_DIR="${GITHUB_WORKSPACE:-$PWD}"
+            case "$WORK_DIR" in
+              /mnt/[a-zA-Z]/*)
+                DRIVE="${WORK_DIR:5:1}"
+                WORK_DIR="${DRIVE^^}:${WORK_DIR:6}"
+                ;;
+              /[a-zA-Z]/*)
+                DRIVE="${WORK_DIR:1:1}"
+                WORK_DIR="${DRIVE^^}:${WORK_DIR:2}"
+                ;;
+            esac
+            WORK_DIR="${WORK_DIR//\//\\}"
             PLUGIN_FILE="$WORK_DIR\\plugin-src\\$PLUGIN_NAME.uplugin"
             PACKAGE_DIR="$WORK_DIR\\packaged-plugin"
           else
