@@ -73,9 +73,15 @@ jobs:
       - name: Checkout Plugin Code
         shell: powershell
         run: |
-          git clone --depth 1 "${{ github.server_url }}/${{ github.repository }}.git" plugin-src
-          cd plugin-src
-          git checkout "${{ github.sha }}"
+          $repoUrl = "${{ github.server_url }}/${{ github.repository }}.git"
+          $authUrl = $repoUrl -replace "https://", "https://oauth2:${{ secrets.GITHUB_TOKEN }}@"
+          
+          git clone --depth 1 --no-checkout $authUrl plugin-src
+          Set-Location plugin-src
+          
+          git lfs install --local
+          git fetch --depth 1 origin "${{ github.sha }}"
+          git checkout FETCH_HEAD
           git lfs pull
 
       # 2a. Build Plugin via RunUAT (Windows)
