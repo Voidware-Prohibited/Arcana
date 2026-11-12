@@ -60,7 +60,7 @@ jobs:
       - name: Set Engine Paths (Windows Registry)
         if: matrix.os != 'macos'
         id: win_paths
-        shell: powershell
+        shell: pwsh
         run: |
           $version = "${{ env.UE_VERSION }}"
           $regPath = "HKLM:\SOFTWARE\EpicGames\Unreal Engine\$version"
@@ -140,7 +140,7 @@ jobs:
 
       - name: Run Automation Tests & Code Coverage (Windows)
         if: matrix.is_windows == true && matrix.run_tests == true
-        shell: powershell
+        shell: pwsh
         run: |
           OpenCppCoverage.exe `
             --sources "${{ github.workspace }}\${{ env.PLUGIN_NAME }}\Source" `
