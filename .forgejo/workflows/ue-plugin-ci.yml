@@ -2,13 +2,13 @@ name: Cross-platform Unreal Engine Plugin CI
 
 on:
   push:
-  tags:
-      - 'v*'
     branches: [ main, dev ]
-  pull_request:
-  branches: [ main, dev ]
     tags:
-      - 'v*'
+        - 'v*'
+  pull_request:
+    branches: [ main, dev ]
+      tags:
+        - 'v*'
 
 env:
   # Single version variable used across the entire workflow to locate the engine
