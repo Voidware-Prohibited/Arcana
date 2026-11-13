@@ -7,7 +7,7 @@ on:
 env:
   UE_VERSION: "5.8"
   PLUGIN_NAME: "Arcana"
-  TESTS_FILTER: "Arcana."
+  TESTS_FILTER: "System.Core"
   WIN_UE_ROOT: 'D:\DEV\UE5\UE_5.8'
   MAC_UE_ROOT: "/Users/Shared/Epic Games/UE_5.8"
   OPENCPP_PATH: 'C:\Program Files\OpenCppCoverage\OpenCppCoverage.exe'
@@ -28,7 +28,7 @@ jobs:
             run_coverage: true
             run_linux_tests: false
 
-          - name: "02.02 Linux (Cross-Compiled on Windows)"
+          - name: "02.02 Linux (Windows Cross-Compile)"
             os: windows
             runs-on: win-linux-cross
             target_platform: Linux
