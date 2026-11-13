@@ -24,6 +24,7 @@ jobs:
     uses: ./.forgejo/workflows/verify-windows-env.yml
 
   win-linux:
+    name: 02 Build Windows
     uses: ./.forgejo/workflows/win-linux.yml
     with:
       plugin_name: Arcana
@@ -35,6 +36,7 @@ jobs:
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   macos:
+    name: 02 Build MacOS
     uses: ./.forgejo/workflows/macos.yml
     with:
       plugin_name: Arcana
