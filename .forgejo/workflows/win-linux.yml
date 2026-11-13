@@ -126,15 +126,14 @@ jobs:
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         run: |
-          # Download the official Codecov CLI for Linux
-          curl -Os https://cli.codecov.io/latest/linux/codecov
-          chmod +x codecov
+          # Download the Windows executable
+          Invoke-WebRequest -Uri https://codecov.io -Outfile codecov.exe
           
-          # Upload the coverage report
-          ./codecov upload-process \
-            --file coverage.xml \
-            --slug ${{ github.repository }} \
-            --sha ${{ github.sha }} \
+          # Upload the coverage report (using backticks ` for line continuation in PowerShell)
+          .\codecov.exe upload-process `
+            --file coverage.xml `
+            --slug ${{ github.repository }} `
+            --sha ${{ github.sha }} `
             --branch ${{ github.ref_name }}
 
       - name: Cook & Package Host Project
