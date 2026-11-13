@@ -80,7 +80,7 @@ jobs:
       # 2a. Build Plugin via RunUAT (Windows)
       - name: Build Plugin (Windows)
         if: matrix.os == 'windows'
-        shell: powershell
+        shell: pwsh
         run: |
           $ErrorActionPreference = "Stop"
 
