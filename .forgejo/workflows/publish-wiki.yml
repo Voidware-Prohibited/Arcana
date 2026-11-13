@@ -6,7 +6,7 @@ on:
 
 jobs:
   build-and-deploy:
-    names: Publish Wiki to Site
+    names: Publish Wiki
     runs-on: linux
     steps:
       - name: Checkout Code Repository

@@ -6,7 +6,7 @@ on:
 
 jobs:
   generate-doxygen-remote:
-    name: Publish Documentation to Site
+    name: Publish Documentation
     runs-on: linux
     steps:
       # 1. Checkout the source code
