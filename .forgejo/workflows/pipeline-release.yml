@@ -1,0 +1,19 @@
+name: Dev CI/CD Pipeline
+on:
+  push:
+    branches: [ stable ]
+    tags:
+      - 'v*'
+  pull_request:
+    branches: [ stable ]
+    tags:
+      - 'v*'
+
+jobs:
+  step-1-build:
+    uses: ./.forgejo/workflows/test-deps.yml
+
+  step-2-deploy:
+    needs: step-1-build
+    uses: ./.forgejo/workflows/ue-plugin-ci-release.yml
+    secrets: inherit # Passes repository secrets down to the called workflow

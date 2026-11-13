@@ -1,14 +1,7 @@
 name: UE 5.8 Plugin Build & Test
 
 on:
-  push:
-    branches: [ main, develop ]
-    tags:
-      - 'v*'
-  pull_request:
-    branches: [ main, develop ]
-    tags:
-      - 'v*'
+  workflow_call:
   workflow_dispatch:
 
 env:

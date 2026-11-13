@@ -1,0 +1,49 @@
+name: Test Wndows Cross Compile
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+
+jobs:
+  test-node:
+    runs-on: win-linux-cross
+    defaults:
+      run:
+        shell: pwsh
+    steps:
+      # Automatically find the active nvm symlink or falls back to the latest installed Node version on the machine and adds it to $env:GITHUB_PATH
+      - name: Configure Node.js from nvm-windows
+        if: always()
+        shell: powershell
+        run: |
+          # 1. Check standard nvm-windows symlink locations first
+          $symlinkPaths = @(
+            $env:NVM_SYMLINK,
+            "C:\nvm4w\nodejs",
+            "C:\Program Files\nodejs"
+          ) | Where-Object { $_ -and (Test-Path "$_\node.exe") }
+
+          if ($symlinkPaths.Count -gt 0) {
+            $nodeDir = $symlinkPaths[0]
+          } else {
+            # 2. Fallback: Search nvm root directories for any installed version
+            $nvmRoots = @($env:NVM_HOME, "C:\Users\$env:USERNAME\AppData\Local\nvm", "C:\nvm4w") | Where-Object { $_ -and (Test-Path $_) }
+            $nodeExe = Get-ChildItem -Path $nvmRoots -Filter "node.exe" -Recurse -ErrorAction SilentlyContinue | Sort-Object FullName -Descending | Select-Object -First 1
+            if ($nodeExe) {
+              $nodeDir = $nodeExe.DirectoryName
+            }
+          }
+
+          if ($nodeDir) {
+            Write-Host "Found Node.js at: $nodeDir"
+            "$nodeDir" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
+          } else {
+            Write-Error "Could not locate node.exe in any nvm-windows directory."
+            exit 1
+          }
+
+      - name: Refresh PATH and check Node.js
+        run: |
+          node -v
+          npm -v
