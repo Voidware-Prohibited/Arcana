@@ -36,7 +36,7 @@ jobs:
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   macos:
-    name: 02 Build MacOS
+    name: 03 Build MacOS
     uses: ./.forgejo/workflows/macos.yml
     with:
       plugin_name: Arcana
@@ -47,12 +47,12 @@ jobs:
 
   step-3-generate-and-publish-documentation:
     needs: win-linux
-    name: 03 Publish Documentation
+    name: 04 Publish Documentation
     uses: ./.forgejo/workflows/publish-doxygen.yml
     secrets: inherit
 
   step-4-publish-wiki:
     needs: win-linux
-    name: 04 Publish Wiki
+    name: 05 Publish Wiki
     uses: ./.forgejo/workflows/publish-wiki.yml
     secrets: inherit
