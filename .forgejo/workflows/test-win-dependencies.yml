@@ -1,9 +1,8 @@
-name: Test Wndows Cross Compile
+name: Test Windows Cross Compile Dependencies
 
 on:
-  push:
-    branches: [ main, master ]
-  pull_request:
+  workflow_call:
+  workflow_dispatch:
 
 jobs:
   test-node:
@@ -17,7 +16,7 @@ jobs:
         run: |
           Write-Host "PowerShell Core is working!"
           $PSVersionTable
-          
+
       # Automatically find the active nvm symlink or falls back to the latest installed Node version on the machine and adds it to $env:GITHUB_PATH
       - name: Configure Node.js from nvm-windows
         if: always()

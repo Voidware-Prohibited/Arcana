@@ -1,17 +1,17 @@
 name: Dev CI/CD Pipeline
 on:
   push:
-    branches: [ stable ]
+    branches: [ main, dev ]
     tags:
       - 'v*'
   pull_request:
-    branches: [ stable ]
+    branches: [ main, dev ]
     tags:
       - 'v*'
 
 jobs:
   step-1-build:
-    uses: ./.forgejo/workflows/test-deps.yml
+    uses: ./.forgejo/workflows/test-win-dependencies.yml
 
   step-2-deploy:
     needs: step-1-build
