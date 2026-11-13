@@ -122,18 +122,20 @@ jobs:
             exit $exitCode
           }
 
-      - name: Upload Coverage to Codecov
+      - name: Install Codecov CLI and upload report
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         run: |
-          pip install codecov-cli
-          codecovcli upload-process \
-            --git-service github \
-            --slug Voidware-Prohibited/Arcana \
+          # Download the official Codecov CLI for Linux
+          curl -Os https://cli.codecov.io/latest/linux/codecov
+          chmod +x codecov
+          
+          # Upload the coverage report
+          ./codecov upload-process \
+            --file coverage.xml \
+            --slug ${{ github.repository }} \
             --sha ${{ github.sha }} \
-            --branch ${{ github.ref_name }} \
-            --file ./coverage.xml \
-            --fail-on-error
+            --branch ${{ github.ref_name }}
 
       - name: Cook & Package Host Project
         if: inputs.run_cook
