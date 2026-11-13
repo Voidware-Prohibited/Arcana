@@ -50,15 +50,46 @@ jobs:
       - name: Prepare Host Project for Testing & Cooking
         shell: pwsh
         run: |
-          New-Item -ItemType Directory -Force -Path "${{ github.workspace }}\HostProject\Plugins\$env:PLUGIN_NAME"
-          Copy-Item -Path "${{ github.workspace }}\*" -Destination "${{ github.workspace }}\HostProject\Plugins\$env:PLUGIN_NAME" -Recurse -Exclude @("HostProject", "Packaged", ".git", ".forgejo")
-          
-          if (-not (Test-Path "${{ github.workspace }}\HostProject\HostProject.uproject")) {
+          $HostDir = "${{ github.workspace }}\HostProject"
+          New-Item -ItemType Directory -Force -Path "$HostDir\Plugins\$env:PLUGIN_NAME"
+          Copy-Item -Path "${{ github.workspace }}\*" -Destination "$HostDir\Plugins\$env:PLUGIN_NAME" -Recurse -Exclude @("HostProject", "Packaged", ".git", ".forgejo")
+
+          if (-not (Test-Path "$HostDir\HostProject.uproject")) {
+            New-Item -ItemType Directory -Force -Path "$HostDir\Source\HostProject"
+
             @{
               FileVersion = 3
-              EngineAssociation = "5.4"
+              EngineAssociation = ""
+              Modules = @(@{ Name = "HostProject"; Type = "Runtime"; LoadingPhase = "Default" })
               Plugins = @(@{ Name = $env:PLUGIN_NAME; Enabled = $true })
-            } | ConvertTo-Json -Depth 4 | Set-Content "${{ github.workspace }}\HostProject\HostProject.uproject"
+            } | ConvertTo-Json -Depth 4 | Set-Content "$HostDir\HostProject.uproject"
+
+            @"
+using UnrealBuildTool;
+public class HostProjectEditorTarget : TargetRules {
+    public HostProjectEditorTarget(TargetInfo Target) : base(Target) {
+        Type = TargetType.Editor;
+        DefaultBuildSettings = BuildSettingsVersion.Latest;
+        IncludeOrderVersion = EngineIncludeOrderVersion.Latest;
+        ExtraModuleNames.Add("HostProject");
+    }
+}
+"@ | Set-Content "$HostDir\Source\HostProjectEditor.Target.cs"
+
+            @"
+using UnrealBuildTool;
+public class HostProject : ModuleRules {
+    public HostProject(ReadOnlyTargetRules Target) : base(Target) {
+        PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
+        PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine" });
+    }
+}
+"@ | Set-Content "$HostDir\Source\HostProject\HostProject.Build.cs"
+
+            @"
+#include "Modules/ModuleManager.h"
+IMPLEMENT_PRIMARY_GAME_MODULE(FDefaultGameModuleImpl, HostProject, "HostProject");
+"@ | Set-Content "$HostDir\Source\HostProject\HostProject.cpp"
           }
 
       - name: Build Host Editor Target
@@ -84,7 +115,16 @@ jobs:
             --cover_children `
             -- "$EditorCmd" "$UProject" `
             -ExecCmds="Automation RunTests $env:PLUGIN_NAME; Quit" `
-            -unattended -nopause -nullrhi -nosplash -nosound -buildmachine -ReportOutputPath="${{ github.workspace }}\TestReports"
+            -unattended -nopause -nullrhi -nosplash -nosound -buildmachine `
+            -stdout -FullStdOutLogOutput `
+            -ReportOutputPath="${{ github.workspace }}\TestReports"
+
+          $exitCode = $LASTEXITCODE
+          if ($exitCode -ne 0) {
+            Write-Host "UnrealEditor-Cmd exited with code $exitCode. Dumping latest log..."
+            Get-ChildItem "${{ github.workspace }}\HostProject\Saved\Logs\*.log" | Sort-Object LastWriteTime -Descending | Select-Object -First 1 | Get-Content -Tail 80
+            exit $exitCode
+          }
 
       - name: Upload Coverage to Codecov
         uses: codecov/codecov-action@v4
