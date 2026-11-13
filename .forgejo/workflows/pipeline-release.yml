@@ -35,7 +35,7 @@ jobs:
     uses: ./.forgejo/workflows/publish-doxygen.yml
     secrets: inherit 
 
-  step-4-publish-wiki-to-site
+  step-4-publish-wiki-to-site:
     needs: step-2-build
     name: Publish Wiki to Website
     uses: ./.forgejo/workflows/publish-wiki.yml
