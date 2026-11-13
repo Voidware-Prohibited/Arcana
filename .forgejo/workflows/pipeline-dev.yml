@@ -10,10 +10,12 @@ on:
       - 'v*'
 
 jobs:
-  step-1-build:
+  step-1-test-environment:
+    name: Test Environment for Dependencies
     uses: ./.forgejo/workflows/test-win-dependencies.yml
 
   step-2-deploy:
-    needs: step-1-build
+    needs: step-1-test-environment
+    name: Build, Test, Cook, Package and Update Status
     uses: ./.forgejo/workflows/ue-plugin-ci.yml
     secrets: inherit # Passes repository secrets down to the called workflow
