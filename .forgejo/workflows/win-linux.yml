@@ -64,32 +64,32 @@ jobs:
               Plugins = @(@{ Name = $env:PLUGIN_NAME; Enabled = $true })
             } | ConvertTo-Json -Depth 4 | Set-Content "$HostDir\HostProject.uproject"
 
-            @"
-using UnrealBuildTool;
-public class HostProjectEditorTarget : TargetRules {
-    public HostProjectEditorTarget(TargetInfo Target) : base(Target) {
-        Type = TargetType.Editor;
-        DefaultBuildSettings = BuildSettingsVersion.Latest;
-        IncludeOrderVersion = EngineIncludeOrderVersion.Latest;
-        ExtraModuleNames.Add("HostProject");
-    }
-}
-"@ | Set-Content "$HostDir\Source\HostProjectEditor.Target.cs"
+            @(
+              'using UnrealBuildTool;',
+              'public class HostProjectEditorTarget : TargetRules {',
+              '    public HostProjectEditorTarget(TargetInfo Target) : base(Target) {',
+              '        Type = TargetType.Editor;',
+              '        DefaultBuildSettings = BuildSettingsVersion.Latest;',
+              '        IncludeOrderVersion = EngineIncludeOrderVersion.Latest;',
+              '        ExtraModuleNames.Add("HostProject");',
+              '    }',
+              '}'
+            ) -join "`n" | Set-Content "$HostDir\Source\HostProjectEditor.Target.cs"
 
-            @"
-using UnrealBuildTool;
-public class HostProject : ModuleRules {
-    public HostProject(ReadOnlyTargetRules Target) : base(Target) {
-        PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
-        PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine" });
-    }
-}
-"@ | Set-Content "$HostDir\Source\HostProject\HostProject.Build.cs"
+            @(
+              'using UnrealBuildTool;',
+              'public class HostProject : ModuleRules {',
+              '    public HostProject(ReadOnlyTargetRules Target) : base(Target) {',
+              '        PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;',
+              '        PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine" });',
+              '    }',
+              '}'
+            ) -join "`n" | Set-Content "$HostDir\Source\HostProject\HostProject.Build.cs"
 
-            @"
-#include "Modules/ModuleManager.h"
-IMPLEMENT_PRIMARY_GAME_MODULE(FDefaultGameModuleImpl, HostProject, "HostProject");
-"@ | Set-Content "$HostDir\Source\HostProject\HostProject.cpp"
+            @(
+              '#include "Modules/ModuleManager.h"',
+              'IMPLEMENT_PRIMARY_GAME_MODULE(FDefaultGameModuleImpl, HostProject, "HostProject");'
+            ) -join "`n" | Set-Content "$HostDir\Source\HostProject\HostProject.cpp"
           }
 
       - name: Build Host Editor Target
