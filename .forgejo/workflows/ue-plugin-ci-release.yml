@@ -193,7 +193,7 @@ jobs:
               -platform=Win64 `
               -configuration=Development `
               -build=editor `
-              -test=UE.EditorAutomation `
+              -test=EditorAutomation `
               -RunTest="$($env:TESTS_FILTER)" `
               -ReportExportPath="$reportDir" `
               -unattended -nop4 -nosplash -nullrhi
