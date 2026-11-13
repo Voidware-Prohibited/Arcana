@@ -10,7 +10,7 @@ jobs:
     runs-on: win-linux-cross
     defaults:
       run:
-        shell: pwsh
+        shell: powershell
     steps:
       # Automatically find the active nvm symlink or falls back to the latest installed Node version on the machine and adds it to $env:GITHUB_PATH
       - name: Configure Node.js from nvm-windows
