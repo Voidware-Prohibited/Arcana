@@ -13,6 +13,11 @@ jobs:
         shell: powershell
     steps:
       # Automatically find the active nvm symlink or falls back to the latest installed Node version on the machine and adds it to $env:GITHUB_PATH
+      - name: Check if pwsh works
+      shell: pwsh
+      run: |
+        Write-Host "PowerShell Core is working!"
+        $PSVersionTable
       - name: Configure Node.js from nvm-windows
         if: always()
         shell: powershell
