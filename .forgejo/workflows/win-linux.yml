@@ -126,11 +126,8 @@ jobs:
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         run: |
-          # Download the Windows executable
-          Invoke-WebRequest -Uri https://codecov.io -Outfile codecov.exe
-          
-          # Upload the coverage report (using backticks ` for line continuation in PowerShell)
-          .\codecov.exe upload-process `
+          pip install codecov-cli
+          codecovcli upload-process `
             --file coverage.xml `
             --slug ${{ github.repository }} `
             --sha ${{ github.sha }} `
