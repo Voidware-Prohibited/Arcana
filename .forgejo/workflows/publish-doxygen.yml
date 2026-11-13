@@ -1,9 +1,8 @@
 name: Deploy Doxygen to External Repo
 
 on:
-  push:
-    branches:
-      - main  # Trigger on pushes to the main branch
+  workflow_call:
+  workflow_dispatch:
 
 jobs:
   generate-doxygen-remote:

@@ -1,9 +1,8 @@
 name: Export Wiki to GitHub Pages
 
 on:
-  push:
-    branches:
-      - main # Change to your default branch name if different
+  workflow_call:
+  workflow_dispatch:
 
 jobs:
   build-and-deploy:

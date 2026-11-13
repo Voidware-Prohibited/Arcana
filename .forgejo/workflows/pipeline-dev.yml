@@ -24,7 +24,7 @@ jobs:
     uses: ./.forgejo/workflows/verify-windows-env.yml
 
   step-2-build:
-    needs: step-1-test-environment
+    needs: step-1-verify-windows-env
     name: Step 02 Build, Test, Cook, Package and Update Status
     uses: ./.forgejo/workflows/ue-plugin-ci.yml
     secrets: inherit
