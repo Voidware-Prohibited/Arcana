@@ -24,7 +24,7 @@ jobs:
     uses: ./.forgejo/workflows/verify-windows-env.yml
 
   win-linux:
-    uses: ./.forgejo/workflows/win-linux.yaml
+    uses: ./.forgejo/workflows/win-linux.yml
     with:
       plugin_name: Arcana
       ue_win_path: 'D:\DEV\UE5\UE_5.8'
@@ -35,7 +35,7 @@ jobs:
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   macos:
-    uses: ./.forgejo/workflows/macos.yaml
+    uses: ./.forgejo/workflows/macos.yml
     with:
       plugin_name: Arcana
       ue_mac_path: '/Users/Shared/Epic Games/UE_5.8'
