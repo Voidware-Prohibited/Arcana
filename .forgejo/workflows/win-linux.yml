@@ -122,6 +122,11 @@ jobs:
             exit $exitCode
           }
 
+      - name: Set up Python for Codecov
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
       - name: Install Codecov CLI and upload report
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
