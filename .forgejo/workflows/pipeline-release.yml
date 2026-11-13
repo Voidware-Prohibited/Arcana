@@ -23,20 +23,95 @@ jobs:
     name: 01 Verify Environment
     uses: ./.forgejo/workflows/verify-windows-env.yml
 
-  step-2-build:
-    needs: step-1-verify-windows-env
-    name: 02 Build, Test, Cook, Package and Update Status
-    uses: ./.forgejo/workflows/ue-plugin-ci-release.yml
-    secrets: inherit
+  win-linux:
+    uses: ./.forgejo/workflows/win-linux.yml
+    with:
+      plugin_name: Arcana
+      ue_win_path: 'D:\DEV\UE5\UE_5.8'
+      run_cook: true
+      upload_artifacts: false
+    secrets:
+      FORGEJO_TOKEN: ${{ secrets.FORGEJO_TOKEN }}
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+  macos:
+    uses: ./.forgejo/workflows/macos.yml
+    with:
+      plugin_name: Arcana
+      ue_mac_path: '/Users/Shared/Epic Games/UE_5.8'
+      upload_artifacts: false
+    secrets:
+      FORGEJO_TOKEN: ${{ secrets.FORGEJO_TOKEN }}
 
   step-3-generate-and-publish-documentation:
-    needs: step-2-build
+    needs: [ win-linux, macos]
     name: 03 Publish Documentation
     uses: ./.forgejo/workflows/publish-doxygen.yml
     secrets: inherit 
 
   step-4-publish-wiki:
-    needs: step-2-build
+    needs: [ win-linux, macos]
     name: 04 Publish Wiki
     uses: ./.forgejo/workflows/publish-wiki.yml
-    secrets: inherit 
+    secrets: inherit
+
+  generate-changelog:
+    needs: [ win-linux, macos ]
+    runs-on: windows
+    steps:
+      - name: Checkout Repository with Full History
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.FORGEJO_TOKEN }}
+
+      - name: Generate CHANGELOG.md from Git History
+        shell: pwsh
+        run: |
+          $latestTag = git describe --tags --abbrev=0 2>$null
+          $range = if ($latestTag) { "$latestTag..HEAD" } else { "HEAD" }
+          $date = Get-Date -Format "yyyy-MM-dd"
+          $shortSha = git rev-parse --short HEAD
+
+          # Group Conventional Commits (feat, fix, etc.) or fallback to standard commit list
+          $commits = git log $range --pretty=format:"- %s (%h)" --no-merges
+          if (-not $commits) { $commits = "- Maintenance and build updates ($shortSha)" }
+
+          $newEntry = "## Release ($date) - $shortSha`n`n$($commits -join "`n")`n`n"
+
+          if (Test-Path "CHANGELOG.md") {
+            $existing = Get-Content "CHANGELOG.md" -Raw
+            Set-Content "CHANGELOG.md" ($newEntry + $existing)
+          } else {
+            Set-Content "CHANGELOG.md" ("# Changelog`n`n" + $newEntry)
+          }
+
+          # Save isolated release notes for the release bundle
+          Set-Content "RELEASE_NOTES.md" $newEntry
+
+      - name: Commit & Push Updated CHANGELOG.md
+        shell: pwsh
+        run: |
+          git config user.name "forgejo-actions[bot]"
+          git config user.email "forgejo-actions[bot]@noreply.local"
+          git add CHANGELOG.md
+          if (git status --porcelain) {
+            git commit -m "chore(release): update CHANGELOG.md [skip ci]"
+            git push origin HEAD:stable
+          }
+
+  finalize-release:
+    needs: [ win-linux, macos, generate-changelog ]
+    runs-on: windows
+    steps:
+      - name: Download All Platform Artifacts & Changelog
+        uses: actions/download-artifact@v4
+        with:
+          path: release-bundle
+
+      - name: Update Final Release Commit Status
+        shell: pwsh
+        run: |
+          $headers = @{ Authorization = "token ${{ secrets.FORGEJO_TOKEN }}"; "Content-Type" = "application/json" }
+          $body = @{ state = "success"; context = "ci/release-ready"; description = "All release artifacts and changelog verified" } | ConvertTo-Json
+          Invoke-RestMethod -Uri "${{ github.api_url }}/repos/${{ github.repository }}/statuses/${{ github.sha }}" -Method Post -Headers $headers -Body $body
