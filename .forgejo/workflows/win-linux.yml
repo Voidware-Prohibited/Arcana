@@ -133,6 +133,7 @@ jobs:
         run: |
           pip install codecov-cli
           codecovcli upload-process `
+            --git-service github `
             --file coverage.xml `
             --slug ${{ github.repository }} `
             --sha ${{ github.sha }} `
