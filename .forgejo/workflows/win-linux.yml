@@ -23,7 +23,7 @@ on:
 
 jobs:
   win-linux-pipeline:
-    runs-on: windows
+    runs-on: win-linux-cross
     env:
       PLUGIN_NAME: ${{ inputs.plugin_name }}
       UE_WIN_PATH: ${{ inputs.ue_win_path }}
