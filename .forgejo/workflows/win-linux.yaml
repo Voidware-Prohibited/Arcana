@@ -1,0 +1,120 @@
+name: Reusable Win64 & Linux Pipeline
+
+on:
+  workflow_call:
+    inputs:
+      plugin_name:
+        type: string
+        required: true
+      ue_win_path:
+        type: string
+        default: 'D:\DEV\UE5\UE_5.8'
+      upload_artifacts:
+        type: boolean
+        default: false
+      run_cook:
+        type: boolean
+        default: true
+    secrets:
+      FORGEJO_TOKEN:
+        required: true
+      CODECOV_TOKEN:
+        required: true
+
+jobs:
+  win-linux-pipeline:
+    runs-on: windows
+    env:
+      PLUGIN_NAME: ${{ inputs.plugin_name }}
+      UE_WIN_PATH: ${{ inputs.ue_win_path }}
+    steps:
+      - name: Set Commit Status (Pending)
+        shell: pwsh
+        run: |
+          $headers = @{ Authorization = "token ${{ secrets.FORGEJO_TOKEN }}"; "Content-Type" = "application/json" }
+          $body = @{ state = "pending"; context = "ci/win-linux"; description = "Building & testing..." } | ConvertTo-Json
+          Invoke-RestMethod -Uri "${{ github.api_url }}/repos/${{ github.repository }}/statuses/${{ github.sha }}" -Method Post -Headers $headers -Body $body
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Package Plugin for Win64 & Linux
+        shell: pwsh
+        run: |
+          & "$env:UE_WIN_PATH\Engine\Build\BatchFiles\RunUAT.bat" BuildPlugin `
+            -Plugin="${{ github.workspace }}\$env:PLUGIN_NAME.uplugin" `
+            -Package="${{ github.workspace }}\Packaged\$env:PLUGIN_NAME" `
+            -TargetPlatforms=Win64+Linux `
+            -Rocket
+
+      - name: Prepare Host Project for Testing & Cooking
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path "${{ github.workspace }}\HostProject\Plugins\$env:PLUGIN_NAME"
+          Copy-Item -Path "${{ github.workspace }}\*" -Destination "${{ github.workspace }}\HostProject\Plugins\$env:PLUGIN_NAME" -Recurse -Exclude @("HostProject", "Packaged", ".git", ".forgejo")
+          
+          if (-not (Test-Path "${{ github.workspace }}\HostProject\HostProject.uproject")) {
+            @{
+              FileVersion = 3
+              EngineAssociation = "5.4"
+              Plugins = @(@{ Name = $env:PLUGIN_NAME; Enabled = $true })
+            } | ConvertTo-Json -Depth 4 | Set-Content "${{ github.workspace }}\HostProject\HostProject.uproject"
+          }
+
+      - name: Build Host Editor Target
+        shell: pwsh
+        run: |
+          & "$env:UE_WIN_PATH\Engine\Build\BatchFiles\Build.bat" HostProjectEditor Win64 Development `
+            -Project="${{ github.workspace }}\HostProject\HostProject.uproject" `
+            -WaitMutex -FromMsBuild
+
+      - name: Run Automated Tests with OpenCppCoverage
+        shell: pwsh
+        run: |
+          $EditorCmd = "$env:UE_WIN_PATH\Engine\Binaries\Win64\UnrealEditor-Cmd.exe"
+          $UProject = "${{ github.workspace }}\HostProject\HostProject.uproject"
+          $PluginSrc = "${{ github.workspace }}\HostProject\Plugins\$env:PLUGIN_NAME\Source"
+
+          OpenCppCoverage.exe `
+            --modules="*$env:PLUGIN_NAME*" `
+            --sources="$PluginSrc" `
+            --excluded_sources="*.gen.cpp" `
+            --excluded_sources="*\Tests\*" `
+            --export_type="cobertura:coverage.xml" `
+            --cover_children `
+            -- "$EditorCmd" "$UProject" `
+            -ExecCmds="Automation RunTests $env:PLUGIN_NAME; Quit" `
+            -unattended -nopause -nullrhi -nosplash -nosound -buildmachine -ReportOutputPath="${{ github.workspace }}\TestReports"
+
+      - name: Upload Coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          files: ./coverage.xml
+          token: ${{ secrets.CODECOV_TOKEN }}
+          fail_ci_if_error: true
+
+      - name: Cook & Package Host Project
+        if: inputs.run_cook
+        shell: pwsh
+        run: |
+          & "$env:UE_WIN_PATH\Engine\Build\BatchFiles\RunUAT.bat" BuildCookRun `
+            -project="${{ github.workspace }}\HostProject\HostProject.uproject" `
+            -noP4 -platform=Win64+Linux -clientconfig=Development -serverconfig=Development `
+            -cook -allmaps -build -stage -pak -archive `
+            -archivedirectory="${{ github.workspace }}\CookedBuilds"
+
+      - name: Upload Win64/Linux Plugin Artifacts
+        if: inputs.upload_artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.PLUGIN_NAME }}-Win64-Linux
+          path: ${{ github.workspace }}\Packaged\${{ env.PLUGIN_NAME }}
+
+      - name: Update Commit Status (Success/Failure)
+        if: always()
+        shell: pwsh
+        run: |
+          $state = if ("${{ job.status }}" -eq "success") { "success" } else { "failure" }
+          $headers = @{ Authorization = "token ${{ secrets.FORGEJO_TOKEN }}"; "Content-Type" = "application/json" }
+          $body = @{ state = $state; context = "ci/win-linux"; description = "Win/Linux pipeline: $state" } | ConvertTo-Json
+          Invoke-RestMethod -Uri "${{ github.api_url }}/repos/${{ github.repository }}/statuses/${{ github.sha }}" -Method Post -Headers $headers -Body $body

@@ -1,0 +1,58 @@
+name: Reusable macOS Pipeline
+
+on:
+  workflow_call:
+    inputs:
+      plugin_name:
+        type: string
+        required: true
+      ue_mac_path:
+        type: string
+        default: '/Users/Shared/Epic Games/UE_5.4'
+      upload_artifacts:
+        type: boolean
+        default: false
+    secrets:
+      FORGEJO_TOKEN:
+        required: true
+
+jobs:
+  macos-pipeline:
+    runs-on: macos
+    env:
+      PLUGIN_NAME: ${{ inputs.plugin_name }}
+      UE_MAC_PATH: ${{ inputs.ue_mac_path }}
+    steps:
+      - name: Set Commit Status (Pending)
+        run: |
+          curl -s -X POST "${{ github.api_url }}/repos/${{ github.repository }}/statuses/${{ github.sha }}" \
+            -H "Authorization: token ${{ secrets.FORGEJO_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d '{"state":"pending","context":"ci/macos","description":"Building macOS plugin..."}'
+
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Package Plugin for Mac
+        run: |
+          "$UE_MAC_PATH/Engine/Build/BatchFiles/RunUAT.sh" BuildPlugin \
+            -Plugin="${{ github.workspace }}/$PLUGIN_NAME.uplugin" \
+            -Package="${{ github.workspace }}/Packaged/$PLUGIN_NAME" \
+            -TargetPlatforms=Mac \
+            -Rocket
+
+      - name: Upload macOS Plugin Artifact
+        if: inputs.upload_artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.PLUGIN_NAME }}-Mac
+          path: ${{ github.workspace }}/Packaged/${{ env.PLUGIN_NAME }}
+
+      - name: Update Commit Status (Success/Failure)
+        if: always()
+        run: |
+          STATE=$([ "${{ job.status }}" == "success" ] && echo "success" || echo "failure")
+          curl -s -X POST "${{ github.api_url }}/repos/${{ github.repository }}/statuses/${{ github.sha }}" \
+            -H "Authorization: token ${{ secrets.FORGEJO_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d "{\"state\":\"$STATE\",\"context\":\"ci/macos\",\"description\":\"macOS build: $STATE\"}"

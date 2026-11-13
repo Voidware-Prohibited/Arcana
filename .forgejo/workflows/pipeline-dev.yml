@@ -23,11 +23,25 @@ jobs:
     name: 01 Verify Environment
     uses: ./.forgejo/workflows/verify-windows-env.yml
 
-  step-2-build:
-    needs: step-1-verify-windows-env
-    name: 02 Build, Test, Cook, Package and Update Status
-    uses: ./.forgejo/workflows/ue-plugin-ci.yml
-    secrets: inherit
+  win-linux:
+    uses: ./.forgejo/workflows/win-linux.yaml
+    with:
+      plugin_name: Arcana
+      ue_win_path: 'D:\DEV\UE5\UE_5.8'
+      run_cook: true
+      upload_artifacts: false
+    secrets:
+      FORGEJO_TOKEN: ${{ secrets.FORGEJO_TOKEN }}
+      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
+  macos:
+    uses: ./.forgejo/workflows/macos.yaml
+    with:
+      plugin_name: Arcana
+      ue_mac_path: '/Users/Shared/Epic Games/UE_5.8'
+      upload_artifacts: false
+    secrets:
+      FORGEJO_TOKEN: ${{ secrets.FORGEJO_TOKEN }}
 
   step-3-generate-and-publish-documentation:
     needs: step-2-build
