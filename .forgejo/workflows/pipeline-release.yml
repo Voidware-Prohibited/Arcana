@@ -9,10 +9,19 @@ on:
     tags:
       - 'v*'
 
+env:
+  UE_VERSION: "5.8"
+  PLUGIN_NAME: "Arcana"
+  TESTS_FILTER: "Arcana."
+  WIN_UE_ROOT: 'D:\DEV\UE5\UE_5.8'
+  MAC_UE_ROOT: "/Users/Shared/Epic Games/UE_5.8"
+  OPENCPP_PATH: 'C:\Program Files\OpenCppCoverage\OpenCppCoverage.exe'
+  CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+
 jobs:
   step-1-test-environment:
     name: Test Environment for Dependencies
-    uses: ./.forgejo/workflows/test-win-dependencies.yml
+    uses: ./.forgejo/workflows/test-win-env.yml
 
   step-2-build:
     needs: step-1-test-environment

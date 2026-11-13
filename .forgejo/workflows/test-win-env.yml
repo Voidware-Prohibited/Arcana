@@ -5,13 +5,14 @@ on:
   workflow_dispatch:
 
 jobs:
-  test-node:
+  test-env:
+    name: Test Environment for Dependencies
     runs-on: win-linux-cross
     defaults:
       run:
         shell: powershell
     steps:
-      - name: Check if pwsh works
+      - name: Check for pwsh (PowerShell Core 7+)
         shell: pwsh
         run: |
           Write-Host "PowerShell Core is working!"
