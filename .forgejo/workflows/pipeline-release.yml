@@ -57,7 +57,7 @@ jobs:
 
   generate-changelog:
     needs: [ win-linux, macos ]
-    runs-on: windows
+    runs-on: win-linux-cross
     steps:
       - name: Checkout Repository with Full History
         uses: actions/checkout@v4
@@ -102,7 +102,7 @@ jobs:
 
   finalize-release:
     needs: [ win-linux, macos, generate-changelog ]
-    runs-on: windows
+    runs-on: win-linux-cross
     steps:
       - name: Download All Platform Artifacts & Changelog
         uses: actions/download-artifact@v4
