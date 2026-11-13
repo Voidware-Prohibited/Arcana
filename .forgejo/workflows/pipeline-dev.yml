@@ -23,9 +23,20 @@ jobs:
     name: Test Environment for Dependencies
     uses: ./.forgejo/workflows/test-win-env.yml
 
-  step-2-deploy:
+  step-2-build:
     needs: step-1-test-environment
     name: Build, Test, Cook, Package and Update Status
     uses: ./.forgejo/workflows/ue-plugin-ci.yml
     secrets: inherit
-    variables: inherit
+
+  step-3-generate-and-publish-documentation:
+    needs: step-2-build
+    name: Generate Doxygen Documentation and Publish to Website
+    uses: ./.forgejo/workflows/publish-doxygen.yml
+    secrets: inherit
+
+  step-4-publish-wiki-to-site
+    needs: step-2-build
+    name: Publish Wiki to Website
+    uses: ./.forgejo/workflows/publish-wiki.yml
+    secrets: inherit

@@ -27,4 +27,16 @@ jobs:
     needs: step-1-test-environment
     name: Build, Test, Cook, Package and Update Status
     uses: ./.forgejo/workflows/ue-plugin-ci-release.yml
-    secrets: inherit # Passes repository secrets down to the called workflow
+    secrets: inherit
+
+  step-3-generate-and-publish-documentation:
+    needs: step-2-build
+    name: Generate Doxygen Documentation and Publish to Website
+    uses: ./.forgejo/workflows/publish-doxygen.yml
+    secrets: inherit 
+
+  step-4-publish-wiki-to-site
+    needs: step-2-build
+    name: Publish Wiki to Website
+    uses: ./.forgejo/workflows/publish-wiki.yml
+    secrets: inherit 
