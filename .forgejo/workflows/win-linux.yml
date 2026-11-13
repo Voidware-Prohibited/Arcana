@@ -123,10 +123,12 @@ jobs:
           }
 
       - name: Upload Coverage to Codecov
-        uses: codecov/codecov-action@v4
+        uses: https://github.com
         with:
           files: ./coverage.xml
           token: ${{ secrets.CODECOV_TOKEN }}
+          git_service: github
+          slug: Voidware-Prohibited/Arcana # Exact case-sensitive GitHub slug
           fail_ci_if_error: true
 
       - name: Cook & Package Host Project
