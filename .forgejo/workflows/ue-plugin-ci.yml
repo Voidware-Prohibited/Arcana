@@ -21,21 +21,21 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: "Windows (Native)"
+          - name: "02.01 Windows (Native)"
             os: windows
             runs-on: win-linux-cross
             target_platform: Win64
             run_coverage: true
             run_linux_tests: false
 
-          - name: "Linux (Cross-Compiled on Windows)"
+          - name: "02.02 Linux (Cross-Compiled on Windows)"
             os: windows
             runs-on: win-linux-cross
             target_platform: Linux
             run_coverage: false
             run_linux_tests: true
 
-          - name: "macOS (Native)"
+          - name: "02.03 macOS (Native)"
             os: macos
             runs-on: macos
             target_platform: Mac

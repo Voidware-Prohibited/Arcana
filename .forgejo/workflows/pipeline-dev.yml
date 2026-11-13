@@ -20,7 +20,7 @@ env:
 
 jobs:
   step-1-verify-windows-env:
-    name: Step 01 Verify Windows Environment
+    name: 01 Verify Environment
     uses: ./.forgejo/workflows/verify-windows-env.yml
 
   step-2-build:
@@ -31,12 +31,12 @@ jobs:
 
   step-3-generate-and-publish-documentation:
     needs: step-2-build
-    name: Step 03 Publish Documentation
+    name: 03 Publish Documentation
     uses: ./.forgejo/workflows/publish-doxygen.yml
     secrets: inherit
 
   step-4-publish-wiki:
     needs: step-2-build
-    name: Step 04 Publish Wiki
+    name: 04 Publish Wiki
     uses: ./.forgejo/workflows/publish-wiki.yml
     secrets: inherit

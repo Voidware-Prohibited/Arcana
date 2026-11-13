@@ -5,8 +5,8 @@ on:
   workflow_dispatch:
 
 jobs:
-  test-env:
-    name: Test Environment for Dependencies
+  verify-win-env:
+    name: 01.01 Verify Windows Environment
     runs-on: win-linux-cross
     defaults:
       run:
