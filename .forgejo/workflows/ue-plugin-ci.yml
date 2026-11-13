@@ -167,6 +167,27 @@ jobs:
           }
           EOF
 
+      - name: Register Engine Association & Build Project Editor
+        shell: powershell
+        run: |
+          $EngineDir = "D:\DEV\UE5\UE_5.8"
+          HOST_DIR="$PWD/HostProject/HostProject"
+          $ProjectPath = "$PWD/HostProject/HostProject\HostProject.uproject"
+
+          # 1. Register the Installed Build GUID in the Windows Registry for the CI user
+          $RegPath = "HKCU:\Software\Epic Games\Unreal Engine\Builds"
+          New-Item -Path $RegPath -Force | Out-Null
+          New-ItemProperty -Path $RegPath -Name "UE_5.8_CI" -Value $EngineDir -PropertyType String -Force | Out-Null
+
+          # 2. Point the .uproject to that exact engine build
+          & "$EngineDir\Engine\Binaries\Win64\UnrealVersionSelector-Win64-Shipping.exe" /projectfiles "$ProjectPath"
+
+          # 3. Compile your project's Development Editor DLLs and .target receipt
+          & "$EngineDir\Engine\Build\BatchFiles\Build.bat" `
+            AracanaEditor Win64 Development `
+            -Project="$ProjectPath" `
+            -WaitMutex -NoHotReload
+
       # 4a. Run UAT Automation Tests + OpenCppCoverage (Native Windows Only)
       - name: Run UAT Automation Tests & OpenCppCoverage (Native Windows)
         if: matrix.run_coverage == true
