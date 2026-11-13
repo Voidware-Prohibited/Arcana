@@ -36,7 +36,7 @@ jobs:
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   macos:
-    name: 03 Build MacOS
+    name: 03 Build macOS
     uses: ./.forgejo/workflows/macos.yml
     with:
       plugin_name: Arcana

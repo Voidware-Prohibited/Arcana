@@ -1,6 +1,8 @@
 #include "StateTree/ArcanaStateTreeTask_PlayContextualAnim.h"
 #include "StateTreeExecutionContext.h"
 #include "ContextualAnimSceneActorComponent.h"
+#include "ContextualAnimSceneAsset.h"
+#include "ContextualAnimUtilities.h"
 
 EStateTreeRunStatus FArcanaStateTreeTask_PlayContextualAnimTask::EnterState(FStateTreeExecutionContext& Context, const FStateTreeTransitionResult& Transition) const
 {
@@ -19,7 +21,14 @@ EStateTreeRunStatus FArcanaStateTreeTask_PlayContextualAnimTask::EnterState(FSta
 	}
 
 	// Modern 5.7 Bindings setup: Construct explicitly from Asset and Section index (0 = Default)
-	FContextualAnimSceneBindings TargetBindings(*InstanceData.SceneAsset, 0, 0);
+	// FContextualAnimSceneBindings TargetBindings(*InstanceData.SceneAsset, 0, 0);
+	
+	TMap<FName, FContextualAnimSceneBindingContext> BindingContexts;
+	BindingContexts.Add(TEXT("PrimaryRole"), FContextualAnimSceneBindingContext(InstanceData.Interactor));
+	BindingContexts.Add(TEXT("SecondaryRole"), FContextualAnimSceneBindingContext(InstanceData.SmartObjectActor));
+
+	FContextualAnimSceneBindings TargetBindings;
+	UContextualAnimUtilities::BP_CreateContextualAnimSceneBindings(InstanceData.SceneAsset,	BindingContexts,TargetBindings);
 
 	// FContextualAnimSceneBindings TargetBindings;
 	// TargetBindings.TryCreateBindings(*InstanceData.SceneAsset.Get(), 0, 0);
@@ -31,8 +40,8 @@ EStateTreeRunStatus FArcanaStateTreeTask_PlayContextualAnimTask::EnterState(FSta
 	// }
     
 	// Explicitly add your primary context actors to their designated role definitions
-	TargetBindings.BindActorToRole(*InstanceData.Interactor, InstanceData.InteractorRole, 0, 0);
-	TargetBindings.BindActorToRole(*InstanceData.SmartObjectActor, InstanceData.SmartObjectRole, 0, 0);
+	// TargetBindings.BindActorToRole(*InstanceData.Interactor, InstanceData.InteractorRole, 0, 0);
+	// TargetBindings.BindActorToRole(*InstanceData.SmartObjectActor, InstanceData.SmartObjectRole, 0, 0);
 
 	// Start scene execution (Returns bool natively in 5.4+)
 	const bool bSceneStarted = InteractorComp->StartContextualAnimScene(TargetBindings);

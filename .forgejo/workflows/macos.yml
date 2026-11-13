@@ -12,12 +12,10 @@ on:
       upload_artifacts:
         type: boolean
         default: false
-    secrets:
-      FORGEJO_TOKEN:
-        required: true
 
 jobs:
   macos-pipeline:
+    name: 03.01 macOS Build Pipeline
     runs-on: macos
     env:
       PLUGIN_NAME: ${{ inputs.plugin_name }}

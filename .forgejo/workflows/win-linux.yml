@@ -15,14 +15,10 @@ on:
       run_cook:
         type: boolean
         default: true
-    secrets:
-      FORGEJO_TOKEN:
-        required: true
-      CODECOV_TOKEN:
-        required: true
 
 jobs:
   win-linux-pipeline:
+    name: 02.01 Windows Build Pipeline
     runs-on: win-linux-cross
     env:
       PLUGIN_NAME: ${{ inputs.plugin_name }}
