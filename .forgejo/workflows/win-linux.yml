@@ -35,7 +35,7 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install Static Analysis tools
-        run: apt-get update && apt-get install -y cppcheck jq && pip install lizard
+        run: pip install cppcheck && pip install lizard
 
       - name: Run Cppcheck and generate JSON
         run: |
