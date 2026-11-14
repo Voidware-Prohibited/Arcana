@@ -139,15 +139,14 @@ jobs:
             --sha ${{ github.sha }} `
             --branch ${{ github.ref_name }}
 
-      - name: Cook & Package Host Project
-        if: inputs.run_cook
+      - name: Package Plugin (UE ${{ matrix.ue_version }})
         shell: pwsh
         run: |
-          & "$env:UE_WIN_PATH\Engine\Build\BatchFiles\RunUAT.bat" BuildCookRun `
-            -project="${{ github.workspace }}\HostProject\HostProject.uproject" `
-            -noP4 -platform=Win64+Linux -clientconfig=Development -serverconfig=Development `
-            -cook -allmaps -build -stage -pak -archive `
-            -archivedirectory="${{ github.workspace }}\CookedBuilds"
+          & "$env:UE_WIN_PATH\Engine\Build\BatchFiles\RunUAT.bat" BuildPlugin `
+            -Plugin="${{ github.workspace }}\${{ env.PLUGIN_NAME }}.uplugin" `
+            -Package="${{ github.workspace }}\PackagedPlugin-UE$env:UE_VERSION" `
+            -TargetPlatforms=Win64+Linux `
+            -Rocket
 
       - name: Upload Win64/Linux Plugin Artifacts
         if: inputs.upload_artifacts
