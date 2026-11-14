@@ -8,7 +8,7 @@
 <p align="center">
      <a href="https://github.com/Voidware-Prohibited/Arcana/commits/master"><img src="https://img.shields.io/github/check-runs/Voidware-Prohibited/Arcana/stable?logo=githubactions&logoColor=white&label=CI" alt="CI"></a>&nbsp;
      <a href="https://github.com/Voidware-Prohibited/Arcana/commits/master"><img src="https://img.shields.io/github/checks-status/Voidware-Prohibited/Arcana/main?logo=github" alt="Checks Status"></a>&nbsp;
-     <a href="https://github.com/Voidware-Prohibited/Arcana/commits/master"><img src="https://img.shields.io/codecov/c/github/Voidware-Prohibited/Arcana/stable?logo=codecov&logoColor=white" alt="Coverage"></a>&nbsp;
+     <a href="https://github.com/Voidware-Prohibited/Arcana/commits/master"><img src="https://img.shields.io/codecov/c/github/Voidware-Prohibited/Arcana/main?logo=codecov&logoColor=white" alt="Coverage"></a>&nbsp;
 </p>
 <p align="center">
      <a href="https://github.com/Voidware-Prohibited/Arcana/issues"><img src="https://img.shields.io/github/issues-raw/Voidware-Prohibited/Arcana.svg?logo=forgejo&logoColor=white" alt="GitHub issues"></a>&nbsp;
@@ -18,7 +18,7 @@
 <p align="center">
      <a href="https://github.com/sponsors/colorindarkness"><img src="https://img.shields.io/github/sponsors/colorindarkness.svg?logo=github&logoColor=white" alt="Become a Sponsor"></a>&nbsp;
      <a href="https://www.patreon.com/colorindarkness"><img src="https://img.shields.io/endpoint.svg?url=https%3A%2F%2Fshieldsio-patreon.vercel.app%2Fapi%3Fusername%3Dcolorindarkness%26type%3Dpatrons&style=flat" alt="Become a Patron"></a>&nbsp;
-     <a href="https://ko-fi.com/colorindarkness"><img alt="Support me on Ko-fi" src="https://img.shields.io/badge/support_me_on-Ko--fi-red?link=https%3A%2F%2Fko-fi.com%2Fcolorindarkness"></a>&nbsp;
+     <a href="https://ko-fi.com/colorindarkness"><img alt="Support me on Ko-fi" src="https://img.shields.io/badge/support_me_on-ko--fi-%2372A5F2?logo=kofi&logoColor=white&link=https%3A%2F%2Fko-fi.com%2Fcolorindarkness"></a>&nbsp;
      <a href="https://liberapay.com/colorindarkness"><img alt="Support me on Liberapay" src="https://img.shields.io/badge/support_me_on-liberapay-yellow?link=https%3A%2F%2Fliberapay.com%2Fcolorindarkness%2F"></a>
 </p>
 
