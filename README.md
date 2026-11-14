@@ -2,24 +2,21 @@
 <img src="docs/SocialBanner.png" alt="Arcana - Make Magic">
 </p>
 <p align="center">
-     <img alt="Status: pre--αlpha" src="https://img.shields.io/badge/status-pre--%CE%B1lpha-yellow.svg?logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIj48cGF0aCBkPSJNMjIuNzUgMTIuNTAxQzIyLjc1IDEyLjkxNSAyMi40MTQgMTMuMjUxIDIyIDEzLjI1MUgxOC4yMzZDMTguMTE1IDEzLjI1MSAxNy45NzggMTMuMzQ1IDE3LjkxIDEzLjQ3M0wxNi42ODkgMTUuNzkxQzE2LjQzNCAxNi4yNzUgMTUuOTE2IDE2LjU0MSAxNS4zNjcgMTYuNDc1QzE0LjgyMyAxNi40MDcgMTQuMzg4IDE2LjAyMiAxNC4yNjIgMTUuNDk0TDEyLjA5OSA2LjQ4MTAyTDkuODU4IDE4LjY5MUM5Ljc0NyArcana4yOTIgOS4yMzkgMTkuNzI3IDguNjIyIDE5Ljc1QzguNjA1IDE5Ljc1IDguNTg4IDE5Ljc1IDguNTcxIDE5Ljc1QzcuOTc1IDE5Ljc1IDcuNDYgMTkuMzU5IDcuMzA5IDE4Ljc4NUw1LjkzMiAxMy41MzdDNS44OTYgMTMuMzk5IDUuNzgyIDEzLjI1IDUuNjE2IDEzLjI1SDJDMS41ODYgMTMuMjUgMS4yNSAxMi45MTQgMS4yNSAxMi41QzEuMjUgMTIuMDg2IDEuNTg2IDExLjc1IDIgMTEuNzVINS42MTVDNi40MzggMTEuNzUgNy4xNjUgMTIuMzI4IDcuMzgyIDEzLjE1Nkw4LjUzOCAxNy41NjVMMTAuNzg4IDUuMzExMDJDMTAuODk4IDQuNzA1MDIgMTEuNDEyIDQuMjY5MDIgMTIuMDM1IDQuMjUyMDJDMTIuNjUxIDQuMjE3MDIgMTMuMTk4IDQuNjQxMDIgMTMuMzQzIDUuMjQyMDJMMTUuNTk4IDE0LjY0MkwxNi41ODIgMTIuNzc1QzE2LjkwOSAxMi4xNTMgMTcuNTU4IDExLjc1MiAxOC4yMzUgMTEuNzUySDIxLjk5OUMyMi40MTMgMTEuNzUyIDIyLjc0OSAxMi4wODggMjIuNzQ5IDEyLjUwMkwyMi43NSAxMi41MDFaIiBmaWxsPSIjZmZmZmZmIj48L3BhdGg+PC9zdmc+">&nbsp;
-     <a href="https://github.com/Voidware-Prohibited/Arcana/commits/master"><img src="https://img.shields.io/github/last-commit/Voidware-Prohibited/Arcana.svg?logo=git&logoColor=white" alt="Last commit"></a>
+     <img alt="Status: pre--αlpha" src="https://img.shields.io/badge/status-pre--%CE%B1lpha-yellow.svg?logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHdpZHRoPSIyNCIgaGVpZ2h0PSIyNCIgdmlld0JveD0iMCAwIDI0IDI0IiBmaWxsPSJub25lIj48cGF0aCBkPSJNMjIuNzUgMTIuNTAxQzIyLjc1IDEyLjkxNSAyMi40MTQgMTMuMjUxIDIyIDEzLjI1MUgxOC4yMzZDMTguMTE1IDEzLjI1MSAxNy45NzggMTMuMzQ1IDE3LjkxIDEzLjQ3M0wxNi42ODkgMTUuNzkxQzE2LjQzNCAxNi4yNzUgMTUuOTE2IDE2LjU0MSAxNS4zNjcgMTYuNDc1QzE0LjgyMyAxNi40MDcgMTQuMzg4IDE2LjAyMiAxNC4yNjIgMTUuNDk0TDEyLjA5OSA2LjQ4MTAyTDkuODU4IDE4LjY5MUM5Ljc0NyAxOS4yOTIgOS4yMzkgMTkuNzI3IDguNjIyIDE5Ljc1QzguNjA1IDE5Ljc1IDguNTg4IDE5Ljc1IDguNTcxIDE5Ljc1QzcuOTc1IDE5Ljc1IDcuNDYgMTkuMzU5IDcuMzA5IDE4Ljc4NUw1LjkzMiAxMy41MzdDNS44OTYgMTMuMzk5IDUuNzgyIDEzLjI1IDUuNjE2IDEzLjI1SDJDMS41ODYgMTMuMjUgMS4yNSAxMi45MTQgMS4yNSAxMi41QzEuMjUgMTIuMDg2IDEuNTg2IDExLjc1IDIgMTEuNzVINS42MTVDNi40MzggMTEuNzUgNy4xNjUgMTIuMzI4IDcuMzgyIDEzLjE1Nkw4LjUzOCAxNy41NjVMMTAuNzg4IDUuMzExMDJDMTAuODk4IDQuNzA1MDIgMTEuNDEyIDQuMjY5MDIgMTIuMDM1IDQuMjUyMDJDMTIuNjUxIDQuMjE3MDIgMTMuMTk4IDQuNjQxMDIgMTMuMzQzIDUuMjQyMDJMMTUuNTk4IDE0LjY0MkwxNi41ODIgMTIuNzc1QzE2LjkwOSAxMi4xNTMgMTcuNTU4IDExLjc1MiAxOC4yMzUgMTEuNzUySDIxLjk5OUMyMi40MTMgMTEuNzUyIDIyLjc0OSAxMi4wODggMjIuNzQ5IDEyLjUwMkwyMi43NSAxMi41MDFaIiBmaWxsPSIjZmZmZmZmIj48L3BhdGg+PC9zdmc+">&nbsp;
+     <a href="https://github.com/Voidware-Prohibited/Arcana/commits/master"><img src="https://img.shields.io/github/last-commit/Voidware-Prohibited/Arcana.svg?logo=git&logoColor=white" alt="Last commit"></a>&nbsp;
+     <a href="https://github.com/Voidware-Prohibited/Arcana/blob/master/LICENSE"><img src="https://img.shields.io/badge/VOIDWARE%20Dual%20License-silver?style=flat&logo=unlicense&logoColor=white&label=license&color=white" alt="VOIDWARE Dual License"></a>
 </p>
 <p align="center">
-     <a href="https://github.com/Voidware-Prohibited/Arcana/commits/master"><img src="https://img.shields.io/github/check-runs/Voidware-Prohibited/Arcana/stable?logo=githubactions&logoColor=white&label=CI" alt="CI"></a>&nbsp;
-     <a href="https://github.com/Voidware-Prohibited/Arcana/commits/master"><img src="https://img.shields.io/github/checks-status/Voidware-Prohibited/Arcana/main?logo=github" alt="Checks Status"></a>&nbsp;
+     <img alt="Dynamic JSON Badge" src="https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgithub.com%2FVoidware-Prohibited%2FArcana%2Fraw%2Frefs%2Fheads%2Fbadges%2Fcppcheck.json&query=%24.message&label=analysis&color=%236699cc&logo=data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHg9IjBweCIgeT0iMHB4IiB3aWR0aD0iMTAwIiBoZWlnaHQ9IjEwMCIgdmlld0JveD0iMCwwLDI1NiwyNTYiPgo8ZyBmaWxsPSIjZmZmZmZmIiBmaWxsLXJ1bGU9Im5vbnplcm8iIHN0cm9rZT0ibm9uZSIgc3Ryb2tlLXdpZHRoPSIxIiBzdHJva2UtbGluZWNhcD0iYnV0dCIgc3Ryb2tlLWxpbmVqb2luPSJtaXRlciIgc3Ryb2tlLW1pdGVybGltaXQ9IjEwIiBzdHJva2UtZGFzaGFycmF5PSIiIHN0cm9rZS1kYXNob2Zmc2V0PSIwIiBmb250LWZhbWlseT0ibm9uZSIgZm9udC13ZWlnaHQ9Im5vbmUiIGZvbnQtc2l6ZT0ibm9uZSIgdGV4dC1hbmNob3I9Im5vbmUiIHN0eWxlPSJtaXgtYmxlbmQtbW9kZTogbm9ybWFsIj48ZyB0cmFuc2Zvcm09InNjYWxlKDUuMTIsNS4xMikiPjxwYXRoIGQ9Ik0yMSwzYy05LjM5ODQ0LDAgLTE3LDcuNjAxNTYgLTE3LDE3YzAsOS4zOTg0NCA3LjYwMTU2LDE3IDE3LDE3YzMuMzU1NDcsMCA2LjQ2MDk0LC0wLjk4NDM3IDkuMDkzNzUsLTIuNjU2MjVsMTIuMjgxMjUsMTIuMjgxMjVsNC4yNSwtNC4yNWwtMTIuMTI1LC0xMi4wOTM3NWMyLjE3OTY5LC0yLjg1OTM3IDMuNSwtNi40MDIzNCAzLjUsLTEwLjI4MTI1YzAsLTkuMzk4NDQgLTcuNjAxNTYsLTE3IC0xNywtMTd6TTIxLDdjNy4xOTkyMiwwIDEzLDUuODAwNzggMTMsMTNjMCw3LjE5OTIyIC01LjgwMDc4LDEzIC0xMywxM2MtNy4xOTkyMiwwIC0xMywtNS44MDA3OCAtMTMsLTEzYzAsLTcuMTk5MjIgNS44MDA3OCwtMTMgMTMsLTEzeiI+PC9wYXRoPjwvZz48L2c+Cjwvc3ZnPg==&logoColor=white">&nbsp;
+    <img alt="Lizard" src="https://img.shields.io/badge/dynamic/json?url=https%3A%2F%2Fgithub.com%2FVoidware-Prohibited%2FArcana%2Fraw%2Frefs%2Fheads%2Fbadges%2Fcppcheck.json&query=%24.message&logo=data:image/svg+xml;base64,PHN2ZyB2aWV3Qm94PSIwIDAgMjQgMjQiIGZpbGw9Im5vbmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGcgaWQ9IlNWR1JlcG9fYmdDYXJyaWVyIiBzdHJva2Utd2lkdGg9IjAiPjwvZz48ZyBpZD0iU1ZHUmVwb190cmFjZXJDYXJyaWVyIiBzdHJva2UtbGluZWNhcD0icm91bmQiIHN0cm9rZS1saW5lam9pbj0icm91bmQiPjwvZz48ZyBpZD0iU1ZHUmVwb19pY29uQ2FycmllciI+PCEtLSBVcGxvYWRlZCB0bzogU1ZHIFJlcG8sIHd3dy5zdmdyZXBvLmNvbSwgR2VuZXJhdG9yOiBTVkcgUmVwbyBNaXhlciBUb29scyAtLT4gPHBhdGggZD0iTTQgNy41TDExLjYwNzggMy4yMjA2MkMxMS43NTA5IDMuMTQwMTQgMTEuODIyNCAzLjA5OTkxIDExLjg5ODIgMy4wODQxNEMxMS45NjU0IDMuMDcwMTkgMTIuMDM0NiAzLjA3MDE5IDEyLjEwMTggMy4wODQxNEMxMi4xNzc2IDMuMDk5OTEgMTIuMjQ5MSAzLjE0MDE0IDEyLjM5MjIgMy4yMjA2MkwyMCA3LjVNNCA3LjVWMTYuMDMyMUM0IDE2LjIwMjUgNCAxNi4yODc2IDQuMDI0OTkgMTYuMzYzN0M0LjA0NzExIDE2LjQzMSA0LjA4MzI2IDE2LjQ5MjggNC4xMzEwNiAxNi41NDVDNC4xODUxIDE2LjYwNDEgNC4yNTkzMyAxNi42NDU5IDQuNDA3NzkgMTYuNzI5NEwxMiAyMU00IDcuNUwxMiAxMS41TTEyIDIxTDE5LjU5MjIgMTYuNzI5NEMxOS43NDA3IDE2LjY0NTkgMTkuODE0OSAxNi42MDQxIDE5Ljg2ODkgMTYuNTQ1QzE5LjkxNjcgMTYuNDkyOCAxOS45NTI5IDE2LjQzMSAxOS45NzUgMTYuMzYzN0MyMCAxNi4yODc2IDIwIDE2LjIwMjUgMjAgMTYuMDMyMVY3LjVNMTIgMjFWMTEuNU0yMCA3LjVMMTIgMTEuNSIgc3Ryb2tlPSIjZmZmZmZmIiBzdHJva2Utd2lkdGg9IjIiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIgc3Ryb2tlLWxpbmVqb2luPSJyb3VuZCI+PC9wYXRoPiA8L2c+PC9zdmc+&logoColor=white&label=complexity&color=%23df0084">&nbsp;
      <a href="https://github.com/Voidware-Prohibited/Arcana/commits/master"><img src="https://img.shields.io/codecov/c/github/Voidware-Prohibited/Arcana/main?logo=codecov&logoColor=white" alt="Coverage"></a>&nbsp;
-</p>
-<p align="center">
-     <a href="https://github.com/Voidware-Prohibited/Arcana/issues"><img src="https://img.shields.io/github/issues-raw/Voidware-Prohibited/Arcana.svg?logo=forgejo&logoColor=white" alt="GitHub issues"></a>&nbsp;
-     <a href="https://github.com/Voidware-Prohibited/Arcana/pulls"><img src="https://img.shields.io/github/issues-pr-raw/Voidware-Prohibited/Arcana.svg?logo=forgejo&logoColor=white" alt="GitHub pull requests"></a>&nbsp;
-     <a href="https://github.com/Voidware-Prohibited/Arcana/blob/master/LICENSE"><img src="https://img.shields.io/badge/VOIDWARE%20Dual%20License-silver?style=flat&logo=unlicense&logoColor=white&label=License&color=white" alt="VOIDWARE Dual License"></a>
+     <a href="https://github.com/Voidware-Prohibited/Arcana/commits/master"><img src="https://img.shields.io/github/checks-status/Voidware-Prohibited/Arcana/main?logo=github" alt="Checks Status"></a>&nbsp;
 </p>
 <p align="center">
      <a href="https://github.com/sponsors/colorindarkness"><img src="https://img.shields.io/github/sponsors/colorindarkness.svg?logo=github&logoColor=white" alt="Become a Sponsor"></a>&nbsp;
      <a href="https://www.patreon.com/colorindarkness"><img src="https://img.shields.io/endpoint.svg?url=https%3A%2F%2Fshieldsio-patreon.vercel.app%2Fapi%3Fusername%3Dcolorindarkness%26type%3Dpatrons&style=flat" alt="Become a Patron"></a>&nbsp;
      <a href="https://ko-fi.com/colorindarkness"><img alt="Support me on Ko-fi" src="https://img.shields.io/badge/support_me_on-ko--fi-%2372A5F2?logo=kofi&logoColor=white&link=https%3A%2F%2Fko-fi.com%2Fcolorindarkness"></a>&nbsp;
-     <a href="https://liberapay.com/colorindarkness"><img alt="Support me on Liberapay" src="https://img.shields.io/badge/support_me_on-liberapay-yellow?link=https%3A%2F%2Fliberapay.com%2Fcolorindarkness%2F"></a>
+     <a href="https://liberapay.com/colorindarkness"><img alt="Support me on Liberapay" src="https://img.shields.io/liberapay/patrons/colorindarkness.svg?logo=liberapay&logoColor=white"></a>
 </p>
 
 > [!NOTE]  
@@ -53,6 +50,17 @@ Support for granular control over Player and AI Interaction with Gameplay Abilit
 ## Demo Content
 - Demo Player Character.
 
+# Requirements
+- Unreal Engine 5.8 or later
+- A working UE5 C++ Integrated Developement Environment(IDE)
+     - Tested: Jetbrains Rider, VS Code, Visual Studio (Windows)
+     - Untested: XCode (MacOS), Jetbrains Rider, VS Code, Visual Studio (Linux)
+- clang -20 13.0.1
+
+## Third-Party Plugins
+The following plugin(s) require cloning or downloading into your projects `Plugins` folder.
+- [DynamicVolumeWithFalloff](https://github.com/Voidware-Prohibited/DynamicVolumeWithFalloff/) ![GitHub Tag](https://img.shields.io/github/v/tag/Voidware-Prohibited/DynamicVolumeWithFalloff)
+
 # Installation
 
 ## Fab Plugin Installation
@@ -63,7 +71,7 @@ _Not available on Fab. Please perform Manual Installation_
 ### Latest Release
 _No Releases yet. Please Compile From Source Code_
 
-1. Install and setup all [Dependencies](#dependencies) (if required).
+1. Install and setup all [Dependencies](#requirements) (if necessary).
 2. Download the [Latest Release](/../releases/latest).
 3. Unzip to your project `Plugins` folder.
 4. (Re)Start Unreal Engine Editor.
@@ -71,7 +79,7 @@ _No Releases yet. Please Compile From Source Code_
 ### Compile From Source Code
 Your host machine must fulfill additional System Requirements to compile this project from source.
 
-#### Compiliation System Requirements
+#### Compilation System Requirements
 
 - A working UE5 C++ Integrated Developement Environment(IDE)
      - Tested: Jetbrains Rider, VS Code, Visual Studio (Windows)

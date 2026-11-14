@@ -34,6 +34,38 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      - name: Install Static Analysis tools
+        run: sudo apt-get update && sudo apt-get install -y cppcheck jq && pip install lizard
+
+      - name: Run Cppcheck and generate JSON
+        run: |
+          cppcheck --enable=all --suppress=missingIncludeSystem --xml src/ 2> cppcheck.xml || true
+          ISSUES=$(grep -c "<error " cppcheck.xml || true)
+          COLOR="brightgreen"
+          [ "$ISSUES" -gt 0 ] && COLOR="red"
+          jq -n --arg msg "$ISSUES issues" --arg col "$COLOR" \
+            '{schemaVersion: 1, label: "cppcheck", message: $msg, color: $col}' > /tmp/cppcheck.json
+
+      - name: Run Lizard and generate JSON
+        run: |
+          lizard src/ -C 15 > lizard.txt || true
+          WARNINGS=$(grep -c "warning:" lizard.txt || true)
+          COLOR="brightgreen"
+          [ "$WARNINGS" -gt 0 ] && COLOR="orange"
+          jq -n --arg msg "$WARNINGS high-CCN" --arg col "$COLOR" \
+            '{schemaVersion: 1, label: "complexity", message: $msg, color: $col}' > /tmp/lizard.json
+
+      - name: Push JSON to badges branch
+        run: |
+          git config user.name "forgejo-actions"
+          git config user.email "actions@noreply.local"
+          git fetch origin badges
+          git checkout badges
+          cp /tmp/cppcheck.json /tmp/lizard.json .
+          git add cppcheck.json lizard.json
+          git commit -m "Update quality badges" || exit 0
+          git push origin badges
+
       - name: Package Plugin for Win64 & Linux
         shell: pwsh
         run: |
