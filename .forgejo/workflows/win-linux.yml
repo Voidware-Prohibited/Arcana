@@ -31,7 +31,7 @@ on:
 jobs:
   check-runner:
     name: 02.00 Check Win64/Linux Runner Availability
-    runs-on: ubuntu-latest
+    runs-on: win-linux-cross
     outputs:
       available: ${{ steps.probe.outputs.available }}
     steps:
