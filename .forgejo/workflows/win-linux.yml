@@ -62,8 +62,9 @@ jobs:
 
 
       - name: Run Lizard and generate JSON
+        shell: pwsh
         run: |
-          lizard src/ -C 15 > lizard.txt || true
+          lizard Source/ -C 15 > lizard.txt || true
           WARNINGS=$(grep -c "warning:" lizard.txt || true)
           COLOR="brightgreen"
           [ "$WARNINGS" -gt 0 ] && COLOR="orange"
