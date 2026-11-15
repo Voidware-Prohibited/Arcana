@@ -12,7 +12,7 @@ on:
 
 env:
   PRIMARY_UE_VERSION: "5.8"
-  UE_VERSIONS: '["5.8", "5.7", "5.6"]'
+  UE_VERSIONS: '["5.6", "5.7", "5.8"]'
   PLUGIN_NAME: "Arcana"
   TESTS_FILTER: "System.Core"
   WIN_UE_BASE_PATH: 'D:\DEV\UE5'
@@ -30,7 +30,7 @@ jobs:
     uses: ./.forgejo/workflows/win-linux.yml
     with:
       plugin_name: Arcana
-      ue_versions: '["5.8", "5.7", "5.6"]'
+      ue_versions: '["5.6", "5.7", "5.8"]'
       primary_ue_version: "5.8"
       ue_win_base_path: 'D:\DEV\UE5'
       tests_filter: "System.Core"
@@ -46,7 +46,7 @@ jobs:
     uses: ./.forgejo/workflows/macos.yml
     with:
       plugin_name: Arcana
-      ue_versions: '["5.8", "5.7", "5.6"]'
+      ue_versions: '["5.6", "5.7", "5.8"]'
       primary_ue_version: "5.8"
       ue_mac_base_path: "/Users/Shared/Epic Games"
       tests_filter: "System.Core"

@@ -1,4 +1,4 @@
-name: Reusable Win64 & Linux Pipeline
+name: Reusable Win64 & Linux Matrix Pipeline
 
 on:
   workflow_call:
@@ -6,39 +6,110 @@ on:
       plugin_name:
         type: string
         required: true
-      ue_win_path:
+      ue_versions:
         type: string
-        default: 'D:\DEV\UE5\UE_5.8'
+        default: '["5.6", "5.7", "5.8"]'
+      primary_ue_version:
+        type: string
+        default: '5.8'
+      ue_win_base_path:
+        type: string
+        default: 'D:\DEV\UE5'
+      tests_filter:
+        type: string
+        default: ''
       upload_artifacts:
         type: boolean
         default: false
       run_cook:
         type: boolean
         default: true
+      enable_platform:
+        type: boolean
+        default: true
 
 jobs:
-  win-linux-pipeline:
-    name: 02.01 Windows Build Pipeline
+  check-runner:
+    name: 02.00 Check Win64/Linux Runner Availability
+    runs-on: ubuntu-latest
+    outputs:
+      available: ${{ steps.probe.outputs.available }}
+    steps:
+      - name: Check for Online win-linux-cross Runner
+        id: probe
+        shell: bash
+        run: |
+          if [ "${{ inputs.enable_platform }}" != "true" ]; then
+            echo "Platform disabled via input."
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          RESPONSE=$(curl -s -f -H "Authorization: token ${{ secrets.FORGEJO_TOKEN }}" \
+            "${{ github.api_url }}/repos/${{ github.repository }}/actions/runners" || echo "")
+
+          if [ -z "$RESPONSE" ]; then
+            RESPONSE=$(curl -s -f -H "Authorization: token ${{ secrets.FORGEJO_TOKEN }}" \
+              "${{ github.api_url }}/admin/runners" || echo "")
+          fi
+
+          if [ -n "$RESPONSE" ]; then
+            MATCH=$(echo "$RESPONSE" | jq '[.runners[]? | select(.status == "online" and (.labels[]? | . == "win-linux-cross"))] | length')
+            if [ "${MATCH:-0}" -gt 0 ]; then
+              echo "Found $MATCH online win-linux-cross runner(s)."
+              echo "available=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "No online win-linux-cross runners found. Skipping platform."
+              echo "available=false" >> "$GITHUB_OUTPUT"
+            fi
+          else
+            echo "Runner API unavailable; assuming runner is online."
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          fi
+
+  win-linux-matrix:
+    name: 02.01 Win64/Linux Build (UE ${{ matrix.ue_version }})
+    needs: check-runner
+    if: needs.check-runner.outputs.available == 'true'
     runs-on: win-linux-cross
+    strategy:
+      fail-fast: false
+      matrix:
+        ue_version: ${{ fromJSON(inputs.ue_versions) }}
     env:
       PLUGIN_NAME: ${{ inputs.plugin_name }}
-      UE_WIN_PATH: ${{ inputs.ue_win_path }}
+      UE_VERSION: ${{ matrix.ue_version }}
+      UE_WIN_PATH: "${{ inputs.ue_win_base_path }}\UE_${{ matrix.ue_version }}"
+      IS_PRIMARY: ${{ matrix.ue_version == inputs.primary_ue_version }}
+      TESTS_FILTER: ${{ inputs.tests_filter || inputs.plugin_name }}
     steps:
       - name: Set Commit Status (Pending)
+        if: env.IS_PRIMARY == 'true'
         shell: pwsh
         run: |
           $headers = @{ Authorization = "token ${{ secrets.FORGEJO_TOKEN }}"; "Content-Type" = "application/json" }
-          $body = @{ state = "pending"; context = "ci/win-linux"; description = "Building & testing..." } | ConvertTo-Json
+          $body = @{ state = "pending"; context = "ci/win-linux"; description = "Building & testing UE ${{ inputs.ue_versions }}..." } | ConvertTo-Json
           Invoke-RestMethod -Uri "${{ github.api_url }}/repos/${{ github.repository }}/statuses/${{ github.sha }}" -Method Post -Headers $headers -Body $body
 
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      - name: Verify Engine Path Exists
+        id: check-engine
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "$env:UE_WIN_PATH\Engine\Build\BatchFiles\RunUAT.bat")) {
+            Write-Error "Unreal Engine $env:UE_VERSION not found at $env:UE_WIN_PATH"
+            exit 1
+          }
+
       - name: Install Analysis & Coverage Tools
+        if: env.IS_PRIMARY == 'true'
         shell: pwsh
         run: python -m pip install --upgrade pip cppcheck lizard codecov-cli
 
       - name: Add Python Scripts to PATH
+        if: env.IS_PRIMARY == 'true'
         shell: pwsh
         run: |
           $scriptsDir = python -c "import sysconfig; print(sysconfig.get_path('scripts'))"
@@ -69,60 +140,59 @@ jobs:
           } | ConvertTo-Json -Compress | Out-File -FilePath "$env:TEMP\lizard.json" -Encoding utf8
 
           $BadgeDir = Join-Path $env:TEMP "badges-worktree"
-          git worktree prune
-          if (Test-Path $BadgeDir) {
-            Remove-Item -Path $BadgeDir -Recurse -Force
-          }
-
           git fetch origin badges
-          git worktree add -B badges $BadgeDir origin/badges
-          $pushedLocation = $false
+          git worktree add $BadgeDir badges
           try {
             Copy-Item -Path "$env:TEMP\cppcheck.json", "$env:TEMP\lizard.json" -Destination $BadgeDir -Force
             Push-Location $BadgeDir
-            $pushedLocation = $true
             git config user.name "forgejo-actions"
             git config user.email "actions@noreply.local"
             git add cppcheck.json lizard.json
             git diff --cached --quiet
             if ($LASTEXITCODE -ne 0) {
               git commit -m "Update quality badges"
-              git push origin HEAD:badges
+              git push origin badges
             }
           } finally {
-            if ($pushedLocation) {
-              Pop-Location
-            }
-            if (Test-Path $BadgeDir) {
-              git worktree remove $BadgeDir --force
-            }
-            git worktree prune
+            Pop-Location
+            git worktree remove $BadgeDir --force
           }
 
-      - name: Build & Package Plugin (Win64 & Linux)
+      - name: Build & Package Plugin (Win64 & Linux - UE ${{ matrix.ue_version }})
         shell: pwsh
         run: |
+          $CombinedOut = "${{ github.workspace }}\Packaged\Combined\UE_$env:UE_VERSION\$env:PLUGIN_NAME"
           & "$env:UE_WIN_PATH\Engine\Build\BatchFiles\RunUAT.bat" BuildPlugin `
             -Plugin="${{ github.workspace }}\$env:PLUGIN_NAME.uplugin" `
-            -Package="${{ github.workspace }}\Packaged\$env:PLUGIN_NAME" `
+            -Package="$CombinedOut" `
             -TargetPlatforms=Win64+Linux `
             -CreateSubFolder
 
-      - name: Run Automated Tests with OpenCppCoverage
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+          $WinOut   = "${{ github.workspace }}\Packaged\Win64\UE_$env:UE_VERSION\$env:PLUGIN_NAME"
+          $LinuxOut = "${{ github.workspace }}\Packaged\Linux\UE_$env:UE_VERSION\$env:PLUGIN_NAME"
+
+          New-Item -ItemType Directory -Force -Path $WinOut, $LinuxOut | Out-Null
+          Copy-Item -Path "$CombinedOut\*" -Destination $WinOut -Recurse -Force
+          Copy-Item -Path "$CombinedOut\*" -Destination $LinuxOut -Recurse -Force
+
+          if (Test-Path "$WinOut\Binaries\Linux")   { Remove-Item "$WinOut\Binaries\Linux" -Recurse -Force }
+          if (Test-Path "$LinuxOut\Binaries\Win64") { Remove-Item "$LinuxOut\Binaries\Win64" -Recurse -Force }
+
+      - name: Run Automated Tests with OpenCppCoverage (Primary UE ${{ inputs.primary_ue_version }})
+        if: env.IS_PRIMARY == 'true'
         shell: pwsh
         run: |
-          $HostDir   = "${{ github.workspace }}\HostProject"
+          $WinPkg    = "${{ github.workspace }}\Packaged\Win64\UE_$env:UE_VERSION\$env:PLUGIN_NAME"
+          $HostDir   = "${{ github.workspace }}\HostProject_UE_$env:UE_VERSION"
           $UProject  = "$HostDir\HostProject.uproject"
           $EditorCmd = "$env:UE_WIN_PATH\Engine\Binaries\Win64\UnrealEditor-Cmd.exe"
 
-          # Create lightweight Blueprint-only host project using already-compiled plugin binaries
           New-Item -ItemType Directory -Force -Path "$HostDir\Plugins\$env:PLUGIN_NAME" | Out-Null
-          Copy-Item -Path "${{ github.workspace }}\Packaged\$env:PLUGIN_NAME\*" -Destination "$HostDir\Plugins\$env:PLUGIN_NAME" -Recurse -Force
+          Copy-Item -Path "$WinPkg\*" -Destination "$HostDir\Plugins\$env:PLUGIN_NAME" -Recurse -Force
 
-          # OpenCppCoverage requires source files to exist at the exact path recorded in the .pdb.
-          # BuildPlugin compiles from Packaged\<Plugin>\HostProject\Plugins\<Plugin>\Source and deletes it afterward.
-          # Re-populate that exact staging path so OpenCppCoverage finds the files on disk.
-          $PdbSourceDir = "${{ github.workspace }}\Packaged\$env:PLUGIN_NAME\HostProject\Plugins\$env:PLUGIN_NAME\Source"
+          $PdbSourceDir = "${{ github.workspace }}\Packaged\Combined\UE_$env:UE_VERSION\$env:PLUGIN_NAME\HostProject\Plugins\$env:PLUGIN_NAME\Source"
           New-Item -ItemType Directory -Force -Path $PdbSourceDir | Out-Null
           Copy-Item -Path "${{ github.workspace }}\Source\*" -Destination $PdbSourceDir -Recurse -Force
 
@@ -140,10 +210,10 @@ jobs:
             --export_type="cobertura:coverage.xml" `
             --cover_children `
             -- "$EditorCmd" "$UProject" `
-            -ExecCmds="Automation RunTests $env:PLUGIN_NAME; Quit" `
+            -ExecCmds="Automation RunTests $env:TESTS_FILTER; Quit" `
             -unattended -nopause -nullrhi -nosplash -nosound -buildmachine `
             -stdout -FullStdOutLogOutput `
-            -ReportOutputPath="${{ github.workspace }}\TestReports"
+            -ReportOutputPath="${{ github.workspace }}\TestReports_UE_$env:UE_VERSION"
 
           $exitCode = $LASTEXITCODE
           if ($exitCode -ne 0) {
@@ -153,6 +223,7 @@ jobs:
           }
 
       - name: Upload Coverage to Codecov
+        if: env.IS_PRIMARY == 'true'
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         shell: pwsh
@@ -164,19 +235,74 @@ jobs:
             --sha ${{ github.sha }} `
             --branch ${{ github.ref_name }}
 
-      - name: Upload Win64/Linux Plugin Artifacts
+      - name: Stage Win64 Build for Consolidation
         if: inputs.upload_artifacts
         uses: actions/upload-artifact@v4
         with:
-          name: ${{ env.PLUGIN_NAME }}-Win64-Linux
-          path: ${{ github.workspace }}\Packaged\${{ env.PLUGIN_NAME }}
+          name: _staging-Win64-UE-${{ matrix.ue_version }}
+          path: ${{ github.workspace }}\Packaged\Win64\UE_${{ matrix.ue_version }}\${{ env.PLUGIN_NAME }}
+
+      - name: Stage Linux Build for Consolidation
+        if: inputs.upload_artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: _staging-Linux-UE-${{ matrix.ue_version }}
+          path: ${{ github.workspace }}\Packaged\Linux\UE_${{ matrix.ue_version }}\${{ env.PLUGIN_NAME }}
+
+  package-win-linux-artifacts:
+    name: 02.02 Consolidate Win64 & Linux Artifacts
+    needs: win-linux-matrix
+    if: ${{ always() && needs.win-linux-matrix.result == 'success' }}
+    runs-on: win-linux-cross
+    env:
+      PLUGIN_NAME: ${{ inputs.plugin_name }}
+    steps:
+      - name: Download Staged Matrix Builds
+        if: inputs.upload_artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: staged-builds
+
+      - name: Organize Consolidated Platform Trees
+        if: inputs.upload_artifacts
+        shell: pwsh
+        run: |
+          $Versions = '${{ inputs.ue_versions }}' | ConvertFrom-Json
+          foreach ($ver in $Versions) {
+            $winSrc = "staged-builds\_staging-Win64-UE-$ver"
+            $linSrc = "staged-builds\_staging-Linux-UE-$ver"
+
+            if (Test-Path $winSrc) {
+              $winDst = "final\Win64\UE_$ver\$env:PLUGIN_NAME"
+              New-Item -ItemType Directory -Force -Path $winDst | Out-Null
+              Copy-Item -Path "$winSrc\*" -Destination $winDst -Recurse -Force
+            }
+            if (Test-Path $linSrc) {
+              $linDst = "final\Linux\UE_$ver\$env:PLUGIN_NAME"
+              New-Item -ItemType Directory -Force -Path $linDst | Out-Null
+              Copy-Item -Path "$linSrc\*" -Destination $linDst -Recurse -Force
+            }
+          }
+
+      - name: Upload Artifact 1 of 3 (Windows Win64)
+        if: inputs.upload_artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.PLUGIN_NAME }}-Win64
+          path: final\Win64
+
+      - name: Upload Artifact 2 of 3 (Linux)
+        if: inputs.upload_artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.PLUGIN_NAME }}-Linux
+          path: final\Linux
 
       - name: Update Commit Status (Success/Failure)
         if: always()
         shell: pwsh
         run: |
-          $state = if ("${{ job.status }}" -eq "success") { "success" } else { "failure" }
+          $state = if ("${{ needs.win-linux-matrix.result }}" -eq "success") { "success" } else { "failure" }
           $headers = @{ Authorization = "token ${{ secrets.FORGEJO_TOKEN }}"; "Content-Type" = "application/json" }
-          $body = @{ state = $state; context = "ci/win-linux"; description = "Win/Linux pipeline: $state" } | ConvertTo-Json
+          $body = @{ state = $state; context = "ci/win-linux"; description = "Win64/Linux matrix (${{ inputs.ue_versions }}): $state" } | ConvertTo-Json
           Invoke-RestMethod -Uri "${{ github.api_url }}/repos/${{ github.repository }}/statuses/${{ github.sha }}" -Method Post -Headers $headers -Body $body
-

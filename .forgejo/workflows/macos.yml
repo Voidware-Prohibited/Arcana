@@ -1,4 +1,4 @@
-name: Reusable macOS Pipeline
+name: Reusable macOS Matrix Pipeline
 
 on:
   workflow_call:
@@ -6,51 +6,195 @@ on:
       plugin_name:
         type: string
         required: true
-      ue_mac_path:
+      ue_versions:
         type: string
-        default: '/Users/Shared/Epic Games/UE_5.4'
+        default: '["5.6", "5.7", "5.8"]'
+      primary_ue_version:
+        type: string
+        default: '5.8'
+      ue_mac_base_path:
+        type: string
+        default: '/Users/Shared/Epic Games'
+      tests_filter:
+        type: string
+        default: ''
       upload_artifacts:
         type: boolean
         default: false
+      enable_platform:
+        type: boolean
+        default: true
 
 jobs:
-  macos-pipeline:
-    name: 03.01 macOS Build Pipeline
+  check-runner:
+    name: 03.00 Check macOS Runner Availability
+    runs-on: ubuntu-latest
+    outputs:
+      available: ${{ steps.probe.outputs.available }}
+    steps:
+      - name: Check for Online macOS Runner
+        id: probe
+        shell: bash
+        run: |
+          if [ "${{ inputs.enable_platform }}" != "true" ]; then
+            echo "macOS platform disabled via input."
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          RESPONSE=$(curl -s -f -H "Authorization: token ${{ secrets.FORGEJO_TOKEN }}" \
+            "${{ github.api_url }}/repos/${{ github.repository }}/actions/runners" || echo "")
+
+          if [ -z "$RESPONSE" ]; then
+            RESPONSE=$(curl -s -f -H "Authorization: token ${{ secrets.FORGEJO_TOKEN }}" \
+              "${{ github.api_url }}/admin/runners" || echo "")
+          fi
+
+          if [ -n "$RESPONSE" ]; then
+            MATCH=$(echo "$RESPONSE" | jq '[.runners[]? | select(.status == "online" and (.labels[]? | test("mac"; "i")))] | length')
+            if [ "${MATCH:-0}" -gt 0 ]; then
+              echo "Found $MATCH online macOS runner(s)."
+              echo "available=true" >> "$GITHUB_OUTPUT"
+            else
+              echo "No online macOS runners found. Skipping macOS pipeline."
+              echo "available=false" >> "$GITHUB_OUTPUT"
+            fi
+          else
+            echo "Runner API unavailable; skipping macOS by default unless runner is reachable."
+            echo "available=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  macos-matrix:
+    name: 03.01 macOS Build (UE ${{ matrix.ue_version }})
+    needs: check-runner
+    if: needs.check-runner.outputs.available == 'true'
     runs-on: macos
+    strategy:
+      fail-fast: false
+      matrix:
+        ue_version: ${{ fromJSON(inputs.ue_versions) }}
     env:
       PLUGIN_NAME: ${{ inputs.plugin_name }}
-      UE_MAC_PATH: ${{ inputs.ue_mac_path }}
+      UE_VERSION: ${{ matrix.ue_version }}
+      UE_MAC_PATH: "${{ inputs.ue_mac_base_path }}/UE_${{ matrix.ue_version }}"
+      IS_PRIMARY: ${{ matrix.ue_version == inputs.primary_ue_version }}
+      TESTS_FILTER: ${{ inputs.tests_filter || inputs.plugin_name }}
     steps:
       - name: Set Commit Status (Pending)
+        if: env.IS_PRIMARY == 'true'
+        shell: bash
         run: |
           curl -s -X POST "${{ github.api_url }}/repos/${{ github.repository }}/statuses/${{ github.sha }}" \
             -H "Authorization: token ${{ secrets.FORGEJO_TOKEN }}" \
             -H "Content-Type: application/json" \
-            -d '{"state":"pending","context":"ci/macos","description":"Building macOS plugin..."}'
+            -d "{\"state\":\"pending\",\"context\":\"ci/macos\",\"description\":\"Building & testing UE ${{ inputs.ue_versions }}...\"}"
 
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Package Plugin for Mac
+      - name: Verify Engine Path Exists
+        shell: bash
         run: |
-          "$UE_MAC_PATH/Engine/Build/BatchFiles/RunUAT.sh" BuildPlugin \
-            -Plugin="${{ github.workspace }}/$PLUGIN_NAME.uplugin" \
-            -Package="${{ github.workspace }}/Packaged/$PLUGIN_NAME" \
-            -TargetPlatforms=Mac \
-            -Rocket
+          if [ ! -f "$UE_MAC_PATH/Engine/Build/BatchFiles/RunUAT.sh" ]; then
+            echo "Error: Unreal Engine $UE_VERSION not found at $UE_MAC_PATH"
+            exit 1
+          fi
 
-      - name: Upload macOS Plugin Artifact
+      - name: Build & Package Plugin (Mac - UE ${{ matrix.ue_version }})
+        shell: bash
+        run: |
+          MAC_OUT="${{ github.workspace }}/Packaged/Mac/UE_${UE_VERSION}/${PLUGIN_NAME}"
+          mkdir -p "$MAC_OUT"
+
+          "$UE_MAC_PATH/Engine/Build/BatchFiles/RunUAT.sh" BuildPlugin \
+            -Plugin="${{ github.workspace }}/${PLUGIN_NAME}.uplugin" \
+            -Package="$MAC_OUT" \
+            -TargetPlatforms=Mac \
+            -CreateSubFolder
+
+      - name: Run Automated Tests (Primary UE ${{ inputs.primary_ue_version }})
+        if: env.IS_PRIMARY == 'true'
+        shell: bash
+        run: |
+          MAC_PKG="${{ github.workspace }}/Packaged/Mac/UE_${UE_VERSION}/${PLUGIN_NAME}"
+          HOST_DIR="${{ github.workspace }}/HostProject_UE_${UE_VERSION}"
+          UPROJECT="$HOST_DIR/HostProject.uproject"
+          EDITOR_CMD="$UE_MAC_PATH/Engine/Binaries/Mac/UnrealEditor-Cmd"
+
+          mkdir -p "$HOST_DIR/Plugins/${PLUGIN_NAME}"
+          cp -R "$MAC_PKG/"* "$HOST_DIR/Plugins/${PLUGIN_NAME}/"
+
+          printf '{\n  "FileVersion": 3,\n  "EngineAssociation": "",\n  "Plugins": [\n    { "Name": "%s", "Enabled": true }\n  ]\n}\n' "${PLUGIN_NAME}" > "$UPROJECT"
+
+          set +e
+          "$EDITOR_CMD" "$UPROJECT" \
+            -ExecCmds="Automation RunTests ${TESTS_FILTER}; Quit" \
+            -unattended -nopause -nullrhi -nosplash -nosound -buildmachine \
+            -stdout -FullStdOutLogOutput \
+            -ReportOutputPath="${{ github.workspace }}/TestReports_UE_${UE_VERSION}"
+          EXIT_CODE=$?
+          set -e
+
+          if [ $EXIT_CODE -ne 0 ]; then
+            echo "UnrealEditor-Cmd exited with code $EXIT_CODE. Dumping latest log..."
+            LATEST_LOG=$(ls -t "$HOST_DIR/Saved/Logs/"*.log 2>/dev/null | head -n 1)
+            if [ -n "$LATEST_LOG" ]; then
+              tail -n 80 "$LATEST_LOG"
+            fi
+            exit $EXIT_CODE
+          fi
+
+      - name: Stage macOS Build for Consolidation
+        if: inputs.upload_artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: _staging-Mac-UE-${{ matrix.ue_version }}
+          path: ${{ github.workspace }}/Packaged/Mac/UE_${{ matrix.ue_version }}/${{ env.PLUGIN_NAME }}
+
+  package-macos-artifact:
+    name: 03.02 Consolidate macOS Artifact
+    needs: macos-matrix
+    if: ${{ always() && needs.macos-matrix.result == 'success' }}
+    runs-on: macos
+    env:
+      PLUGIN_NAME: ${{ inputs.plugin_name }}
+    steps:
+      - name: Download Staged Matrix Builds
+        if: inputs.upload_artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: staged-builds
+
+      - name: Organize Consolidated macOS Tree
+        if: inputs.upload_artifacts
+        shell: bash
+        run: |
+          for ver in $(echo '${{ inputs.ue_versions }}' | jq -r '.[]'); do
+            SRC="staged-builds/_staging-Mac-UE-${ver}"
+            if [ -d "$SRC" ]; then
+              DST="final/Mac/UE_${ver}/${PLUGIN_NAME}"
+              mkdir -p "$DST"
+              cp -R "$SRC/"* "$DST/"
+            fi
+          done
+
+      - name: Upload Artifact 3 of 3 (macOS)
         if: inputs.upload_artifacts
         uses: actions/upload-artifact@v4
         with:
           name: ${{ env.PLUGIN_NAME }}-Mac
-          path: ${{ github.workspace }}/Packaged/${{ env.PLUGIN_NAME }}
+          path: final/Mac
 
       - name: Update Commit Status (Success/Failure)
         if: always()
+        shell: bash
         run: |
-          STATE=$([ "${{ job.status }}" == "success" ] && echo "success" || echo "failure")
+          if [ "${{ needs.macos-matrix.result }}" = "success" ]; then
+            STATE="success"
+          else
+            STATE="failure"
+          fi
           curl -s -X POST "${{ github.api_url }}/repos/${{ github.repository }}/statuses/${{ github.sha }}" \
             -H "Authorization: token ${{ secrets.FORGEJO_TOKEN }}" \
             -H "Content-Type: application/json" \
-            -d "{\"state\":\"$STATE\",\"context\":\"ci/macos\",\"description\":\"macOS build: $STATE\"}"
+            -d "{\"state\":\"${STATE}\",\"context\":\"ci/macos\",\"description\":\"macOS matrix (${{ inputs.ue_versions }}): ${STATE}\"}"
