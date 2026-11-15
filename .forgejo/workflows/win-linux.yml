@@ -92,6 +92,8 @@ jobs:
             git commit -m "Update quality badges"
             git push origin badges
           }
+          # Return to the original commit/branch
+          git checkout -
 
       - name: Package Plugin for Win64 & Linux
         shell: pwsh

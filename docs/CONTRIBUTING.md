@@ -1,6 +1,6 @@
 # Contributing
 
-Thank you for your interest in contributing to ALSXT!
+Thank you for your interest in contributing to Arcana!
 
 Please read this document in its entirety before performing a Pull Request.
 
