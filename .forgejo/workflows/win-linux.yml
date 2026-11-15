@@ -293,6 +293,7 @@ jobs:
         shell: pwsh
         run: |
           $state = if ("${{ needs.win-linux-matrix.result }}" -eq "success") { "success" } else { "failure" }
+          $versions = '${{ inputs.ue_versions }}'
           $headers = @{ Authorization = "token ${{ secrets.FORGEJO_TOKEN }}"; "Content-Type" = "application/json" }
-          $body = @{ state = $state; context = "ci/win-linux"; description = "Win64/Linux matrix (${{ inputs.ue_versions }}): $state" } | ConvertTo-Json
+          $body = @{ state = $state; context = "ci/win-linux"; description = "Win64/Linux matrix ($versions): $state" } | ConvertTo-Json
           Invoke-RestMethod -Uri "${{ github.api_url }}/repos/${{ github.repository }}/statuses/${{ github.sha }}" -Method Post -Headers $headers -Body $body
