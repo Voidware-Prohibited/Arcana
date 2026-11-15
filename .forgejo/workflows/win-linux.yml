@@ -38,16 +38,19 @@ jobs:
         run: pip install cppcheck && pip install lizard
 
       - name: Run Cppcheck and generate JSON
-        shell: bash
+        shell: pwsh
         run: |
-          cppcheck --enable=all --suppress=missingIncludeSystem --xml src/ 2> cppcheck.xml || true
-          ISSUES=$(grep -c "<error " cppcheck.xml || true)
-          COLOR="brightgreen"
-          if [ "$ISSUES" -gt 0 ]; then
-            COLOR="red"
-          fi
-          jq -n --arg msg "$ISSUES issues" --arg col "$COLOR" \
-            '{schemaVersion: 1, label: "cppcheck", message: $msg, color: $col}' > /tmp/cppcheck.json
+          cppcheck --enable=all --suppress=missingIncludeSystem --xml src/ 2> cppcheck.xml
+          $issues = (Select-String -Path cppcheck.xml -Pattern "<error " -AllMatches).Matches.Count
+          $color = if ($issues -gt 0) { "red" } else { "brightgreen" }
+          
+          @{
+            schemaVersion = 1
+            label         = "cppcheck"
+            message       = "$issues issues"
+            color         = $color
+          } | ConvertTo-Json -Compress | Out-File -FilePath "$env:TEMP\cppcheck.json" -Encoding utf8
+
 
 
       - name: Run Lizard and generate JSON
