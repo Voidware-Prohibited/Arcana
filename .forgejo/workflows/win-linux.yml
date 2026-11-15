@@ -34,134 +34,84 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
-      - name: Install Static Analysis tools
-        run: pip install cppcheck && pip install lizard
+      - name: Set up Python & CLI Tools
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
 
-      - name: Add Python Scripts to PATH
+      - name: Install Analysis & Coverage Tools
+        shell: pwsh
+        run: python -m pip install --upgrade pip cppcheck lizard codecov-cli
+
+      - name: Run Static Analysis & Update Badges
         shell: pwsh
         run: |
-          $scriptsDir = python -c "import sysconfig; print(sysconfig.get_path('scripts'))"
-          $userScriptsDir = python -c "import sysconfig; print(sysconfig.get_path('scripts', 'nt_user'))"
-          "$scriptsDir" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-          "$userScriptsDir" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-
-      - name: Run Cppcheck and generate JSON
-        shell: pwsh
-        run: |
+          # 1. Cppcheck
           cppcheck --enable=all --suppress=missingIncludeSystem --xml Source/ 2> cppcheck.xml
           $issues = (Select-String -Path cppcheck.xml -Pattern "<error " -AllMatches).Matches.Count
-          $color = if ($issues -gt 0) { "red" } else { "brightgreen" }
-          
           @{
             schemaVersion = 1
             label         = "cppcheck"
             message       = "$issues issues"
-            color         = $color
+            color         = if ($issues -gt 0) { "red" } else { "brightgreen" }
           } | ConvertTo-Json -Compress | Out-File -FilePath "$env:TEMP\cppcheck.json" -Encoding utf8
 
-      - name: Run Lizard and generate JSON
-        shell: pwsh
-        run: |
-          lizard Source -C 15 | Out-File -FilePath lizard.txt -Encoding utf8
+          # 2. Lizard Complexity
+          python -m lizard Source -C 15 | Out-File -FilePath lizard.txt -Encoding utf8
           $warnings = (Select-String -Path lizard.txt -Pattern "warning:" | Measure-Object).Count
-          $color = if ($warnings -gt 0) { "orange" } else { "brightgreen" }
-
-          $payload = [ordered]@{
+          @{
             schemaVersion = 1
             label         = "complexity"
             message       = "$warnings high-CCN"
-            color         = $color
-          }
+            color         = if ($warnings -gt 0) { "orange" } else { "brightgreen" }
+          } | ConvertTo-Json -Compress | Out-File -FilePath "$env:TEMP\lizard.json" -Encoding utf8
 
-          $outPath = Join-Path $env:TEMP "lizard.json"
-          $payload | ConvertTo-Json -Compress | Out-File -FilePath $outPath -Encoding utf8
-
-      - name: Push JSON to badges branch
-        shell: pwsh
-        run: |
-          git config user.name "forgejo-actions"
-          git config user.email "actions@noreply.local"
+          # 3. Push badges via isolated worktree (avoids dirty workspace conflicts)
+          $BadgeDir = Join-Path $env:TEMP "badges-worktree"
           git fetch origin badges
-          git checkout badges
-
-          Copy-Item -Path (Join-Path $env:TEMP "cppcheck.json"), (Join-Path $env:TEMP "lizard.json") -Destination . -Force
-
-          git add cppcheck.json lizard.json
-          git diff --cached --quiet
-          if ($LASTEXITCODE -ne 0) {
-            git commit -m "Update quality badges"
-            git push origin badges
+          git worktree add $BadgeDir badges
+          try {
+            Copy-Item -Path "$env:TEMP\cppcheck.json", "$env:TEMP\lizard.json" -Destination $BadgeDir -Force
+            Push-Location $BadgeDir
+            git config user.name "forgejo-actions"
+            git config user.email "actions@noreply.local"
+            git add cppcheck.json lizard.json
+            git diff --cached --quiet
+            if ($LASTEXITCODE -ne 0) {
+              git commit -m "Update quality badges"
+              git push origin badges
+            }
+          } finally {
+            Pop-Location
+            git worktree remove $BadgeDir --force
           }
-          # Return to the original commit/branch
-          git checkout -
 
-      - name: Package Plugin for Win64 & Linux
+      - name: Build & Package Plugin (Win64 & Linux)
         shell: pwsh
         run: |
           & "$env:UE_WIN_PATH\Engine\Build\BatchFiles\RunUAT.bat" BuildPlugin `
             -Plugin="${{ github.workspace }}\$env:PLUGIN_NAME.uplugin" `
             -Package="${{ github.workspace }}\Packaged\$env:PLUGIN_NAME" `
-            -TargetPlatforms=Win64+Linux `
-            -Rocket
-
-      - name: Prepare Host Project for Testing & Cooking
-        shell: pwsh
-        run: |
-          $HostDir = "${{ github.workspace }}\HostProject"
-          New-Item -ItemType Directory -Force -Path "$HostDir\Plugins\$env:PLUGIN_NAME"
-          Copy-Item -Path "${{ github.workspace }}\*" -Destination "$HostDir\Plugins\$env:PLUGIN_NAME" -Recurse -Exclude @("HostProject", "Packaged", ".git", ".forgejo")
-
-          if (-not (Test-Path "$HostDir\HostProject.uproject")) {
-            New-Item -ItemType Directory -Force -Path "$HostDir\Source\HostProject"
-
-            @{
-              FileVersion = 3
-              EngineAssociation = ""
-              Modules = @(@{ Name = "HostProject"; Type = "Runtime"; LoadingPhase = "Default" })
-              Plugins = @(@{ Name = $env:PLUGIN_NAME; Enabled = $true })
-            } | ConvertTo-Json -Depth 4 | Set-Content "$HostDir\HostProject.uproject"
-
-            @(
-              'using UnrealBuildTool;',
-              'public class HostProjectEditorTarget : TargetRules {',
-              '    public HostProjectEditorTarget(TargetInfo Target) : base(Target) {',
-              '        Type = TargetType.Editor;',
-              '        DefaultBuildSettings = BuildSettingsVersion.Latest;',
-              '        IncludeOrderVersion = EngineIncludeOrderVersion.Latest;',
-              '        ExtraModuleNames.Add("HostProject");',
-              '    }',
-              '}'
-            ) -join "`n" | Set-Content "$HostDir\Source\HostProjectEditor.Target.cs"
-
-            @(
-              'using UnrealBuildTool;',
-              'public class HostProject : ModuleRules {',
-              '    public HostProject(ReadOnlyTargetRules Target) : base(Target) {',
-              '        PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;',
-              '        PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine" });',
-              '    }',
-              '}'
-            ) -join "`n" | Set-Content "$HostDir\Source\HostProject\HostProject.Build.cs"
-
-            @(
-              '#include "Modules/ModuleManager.h"',
-              'IMPLEMENT_PRIMARY_GAME_MODULE(FDefaultGameModuleImpl, HostProject, "HostProject");'
-            ) -join "`n" | Set-Content "$HostDir\Source\HostProject\HostProject.cpp"
-          }
-
-      - name: Build Host Editor Target
-        shell: pwsh
-        run: |
-          & "$env:UE_WIN_PATH\Engine\Build\BatchFiles\Build.bat" HostProjectEditor Win64 Development `
-            -Project="${{ github.workspace }}\HostProject\HostProject.uproject" `
-            -WaitMutex -FromMsBuild
+            -TargetPlatforms=Win64+Linux
 
       - name: Run Automated Tests with OpenCppCoverage
         shell: pwsh
         run: |
+          $HostDir   = "${{ github.workspace }}\HostProject"
+          $UProject  = "$HostDir\HostProject.uproject"
           $EditorCmd = "$env:UE_WIN_PATH\Engine\Binaries\Win64\UnrealEditor-Cmd.exe"
-          $UProject = "${{ github.workspace }}\HostProject\HostProject.uproject"
-          $PluginSrc = "${{ github.workspace }}\HostProject\Plugins\$env:PLUGIN_NAME\Source"
+          $PluginSrc = "${{ github.workspace }}\Source"
+
+          # Create lightweight Blueprint-only host project using already-compiled plugin binaries
+          New-Item -ItemType Directory -Force -Path "$HostDir\Plugins\$env:PLUGIN_NAME" | Out-Null
+          Copy-Item -Path "${{ github.workspace }}\Packaged\$env:PLUGIN_NAME\*" -Destination "$HostDir\Plugins\$env:PLUGIN_NAME" -Recurse -Force
+
+          @{
+            FileVersion       = 3
+            EngineAssociation = ""
+            Plugins           = @(@{ Name = $env:PLUGIN_NAME; Enabled = $true })
+          } | ConvertTo-Json -Depth 4 | Set-Content $UProject
 
           OpenCppCoverage.exe `
             --modules="*$env:PLUGIN_NAME*" `
@@ -179,35 +129,21 @@ jobs:
           $exitCode = $LASTEXITCODE
           if ($exitCode -ne 0) {
             Write-Host "UnrealEditor-Cmd exited with code $exitCode. Dumping latest log..."
-            Get-ChildItem "${{ github.workspace }}\HostProject\Saved\Logs\*.log" | Sort-Object LastWriteTime -Descending | Select-Object -First 1 | Get-Content -Tail 80
+            Get-ChildItem "$HostDir\Saved\Logs\*.log" | Sort-Object LastWriteTime -Descending | Select-Object -First 1 | Get-Content -Tail 80
             exit $exitCode
           }
 
-      - name: Set up Python for Codecov
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-
-      - name: Install Codecov CLI and upload report
+      - name: Upload Coverage to Codecov
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+        shell: pwsh
         run: |
-          pip install codecov-cli
           codecovcli upload-process `
             --git-service github `
             --file coverage.xml `
             --slug ${{ github.repository }} `
             --sha ${{ github.sha }} `
             --branch ${{ github.ref_name }}
-
-      - name: Package Plugin (UE ${{ matrix.ue_version }})
-        shell: pwsh
-        run: |
-          & "$env:UE_WIN_PATH\Engine\Build\BatchFiles\RunUAT.bat" BuildPlugin `
-            -Plugin="${{ github.workspace }}\${{ env.PLUGIN_NAME }}.uplugin" `
-            -Package="${{ github.workspace }}\PackagedPlugin-UE$env:UE_VERSION" `
-            -TargetPlatforms=Win64+Linux `
-            -Rocket
 
       - name: Upload Win64/Linux Plugin Artifacts
         if: inputs.upload_artifacts
@@ -224,3 +160,4 @@ jobs:
           $headers = @{ Authorization = "token ${{ secrets.FORGEJO_TOKEN }}"; "Content-Type" = "application/json" }
           $body = @{ state = $state; context = "ci/win-linux"; description = "Win/Linux pipeline: $state" } | ConvertTo-Json
           Invoke-RestMethod -Uri "${{ github.api_url }}/repos/${{ github.repository }}/statuses/${{ github.sha }}" -Method Post -Headers $headers -Body $body
+
