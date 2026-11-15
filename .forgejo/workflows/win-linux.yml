@@ -47,9 +47,9 @@ jobs:
           "$userScriptsDir" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
 
       - name: Run Static Analysis & Update Badges
+        if: env.IS_PRIMARY == 'true'
         shell: pwsh
         run: |
-          # 1. Cppcheck
           cppcheck --enable=all --suppress=missingIncludeSystem --xml Source/ 2> cppcheck.xml
           $issues = (Select-String -Path cppcheck.xml -Pattern "<error " -AllMatches).Matches.Count
           @{
@@ -59,7 +59,6 @@ jobs:
             color         = if ($issues -gt 0) { "red" } else { "brightgreen" }
           } | ConvertTo-Json -Compress | Out-File -FilePath "$env:TEMP\cppcheck.json" -Encoding utf8
 
-          # 2. Lizard Complexity
           python -m lizard Source -C 15 | Out-File -FilePath lizard.txt -Encoding utf8
           $warnings = (Select-String -Path lizard.txt -Pattern "warning:" | Measure-Object).Count
           @{
@@ -69,24 +68,35 @@ jobs:
             color         = if ($warnings -gt 0) { "orange" } else { "brightgreen" }
           } | ConvertTo-Json -Compress | Out-File -FilePath "$env:TEMP\lizard.json" -Encoding utf8
 
-          # 3. Push badges via isolated worktree (avoids dirty workspace conflicts)
           $BadgeDir = Join-Path $env:TEMP "badges-worktree"
+          git worktree prune
+          if (Test-Path $BadgeDir) {
+            Remove-Item -Path $BadgeDir -Recurse -Force
+          }
+
           git fetch origin badges
-          git worktree add $BadgeDir badges
+          git worktree add -B badges $BadgeDir origin/badges
+          $pushedLocation = $false
           try {
             Copy-Item -Path "$env:TEMP\cppcheck.json", "$env:TEMP\lizard.json" -Destination $BadgeDir -Force
             Push-Location $BadgeDir
+            $pushedLocation = $true
             git config user.name "forgejo-actions"
             git config user.email "actions@noreply.local"
             git add cppcheck.json lizard.json
             git diff --cached --quiet
             if ($LASTEXITCODE -ne 0) {
               git commit -m "Update quality badges"
-              git push origin badges
+              git push origin HEAD:badges
             }
           } finally {
-            Pop-Location
-            git worktree remove $BadgeDir --force
+            if ($pushedLocation) {
+              Pop-Location
+            }
+            if (Test-Path $BadgeDir) {
+              git worktree remove $BadgeDir --force
+            }
+            git worktree prune
           }
 
       - name: Build & Package Plugin (Win64 & Linux)
