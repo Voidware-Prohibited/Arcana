@@ -8,7 +8,7 @@ on:
         required: true
       ue_versions:
         type: string
-        default: '["5.6", "5.7", "5.8"]'
+        default: '["5.8", "5.7", "5.6"]'
       primary_ue_version:
         type: string
         default: '5.8'
