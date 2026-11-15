@@ -48,7 +48,7 @@ jobs:
       - name: Run Cppcheck and generate JSON
         shell: pwsh
         run: |
-          cppcheck --enable=all --suppress=missingIncludeSystem --xml src/ 2> cppcheck.xml
+          cppcheck --enable=all --suppress=missingIncludeSystem --xml Source/ 2> cppcheck.xml
           $issues = (Select-String -Path cppcheck.xml -Pattern "<error " -AllMatches).Matches.Count
           $color = if ($issues -gt 0) { "red" } else { "brightgreen" }
           
