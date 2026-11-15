@@ -34,6 +34,10 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      - name: Install Analysis & Coverage Tools
+        shell: pwsh
+        run: python -m pip install --upgrade pip cppcheck lizard codecov-cli
+
       - name: Run Static Analysis & Update Badges
         shell: pwsh
         run: |
