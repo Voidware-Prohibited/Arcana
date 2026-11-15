@@ -95,7 +95,8 @@ jobs:
           & "$env:UE_WIN_PATH\Engine\Build\BatchFiles\RunUAT.bat" BuildPlugin `
             -Plugin="${{ github.workspace }}\$env:PLUGIN_NAME.uplugin" `
             -Package="${{ github.workspace }}\Packaged\$env:PLUGIN_NAME" `
-            -TargetPlatforms=Win64+Linux
+            -TargetPlatforms=Win64+Linux `
+            -CreateSubFolder
 
       - name: Run Automated Tests with OpenCppCoverage
         shell: pwsh
@@ -103,11 +104,17 @@ jobs:
           $HostDir   = "${{ github.workspace }}\HostProject"
           $UProject  = "$HostDir\HostProject.uproject"
           $EditorCmd = "$env:UE_WIN_PATH\Engine\Binaries\Win64\UnrealEditor-Cmd.exe"
-          $PluginSrc = "${{ github.workspace }}\Source"
 
           # Create lightweight Blueprint-only host project using already-compiled plugin binaries
           New-Item -ItemType Directory -Force -Path "$HostDir\Plugins\$env:PLUGIN_NAME" | Out-Null
           Copy-Item -Path "${{ github.workspace }}\Packaged\$env:PLUGIN_NAME\*" -Destination "$HostDir\Plugins\$env:PLUGIN_NAME" -Recurse -Force
+
+          # OpenCppCoverage requires source files to exist at the exact path recorded in the .pdb.
+          # BuildPlugin compiles from Packaged\<Plugin>\HostProject\Plugins\<Plugin>\Source and deletes it afterward.
+          # Re-populate that exact staging path so OpenCppCoverage finds the files on disk.
+          $PdbSourceDir = "${{ github.workspace }}\Packaged\$env:PLUGIN_NAME\HostProject\Plugins\$env:PLUGIN_NAME\Source"
+          New-Item -ItemType Directory -Force -Path $PdbSourceDir | Out-Null
+          Copy-Item -Path "${{ github.workspace }}\Source\*" -Destination $PdbSourceDir -Recurse -Force
 
           @{
             FileVersion       = 3
@@ -117,7 +124,7 @@ jobs:
 
           OpenCppCoverage.exe `
             --modules="*$env:PLUGIN_NAME*" `
-            --sources="$PluginSrc" `
+            --sources="*$env:PLUGIN_NAME*\Source\*" `
             --excluded_sources="*.gen.cpp" `
             --excluded_sources="*\Tests\*" `
             --export_type="cobertura:coverage.xml" `
