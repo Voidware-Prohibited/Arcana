@@ -77,15 +77,21 @@ jobs:
           $payload | ConvertTo-Json -Compress | Out-File -FilePath $outPath -Encoding utf8
 
       - name: Push JSON to badges branch
+        shell: pwsh
         run: |
           git config user.name "forgejo-actions"
           git config user.email "actions@noreply.local"
           git fetch origin badges
           git checkout badges
-          cp /tmp/cppcheck.json /tmp/lizard.json .
+
+          Copy-Item -Path (Join-Path $env:TEMP "cppcheck.json"), (Join-Path $env:TEMP "lizard.json") -Destination . -Force
+
           git add cppcheck.json lizard.json
-          git commit -m "Update quality badges" || exit 0
-          git push origin badges
+          git diff --cached --quiet
+          if ($LASTEXITCODE -ne 0) {
+            git commit -m "Update quality badges"
+            git push origin badges
+          }
 
       - name: Package Plugin for Win64 & Linux
         shell: pwsh
