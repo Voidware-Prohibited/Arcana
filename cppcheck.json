@@ -1,1 +1,1 @@
-{"schemaVersion":1,"message":"38 issues","label":"cppcheck","color":"red"}
+{"label":"cppcheck","color":"red","message":"38 issues","schemaVersion":1}
