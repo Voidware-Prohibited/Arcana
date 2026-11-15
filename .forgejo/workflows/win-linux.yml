@@ -29,54 +29,9 @@ on:
         default: true
 
 jobs:
-  check-runner:
-    name: 02.00 Check Win64/Linux Runner Availability
-    runs-on: win-linux-cross
-    outputs:
-      available: ${{ steps.probe.outputs.available }}
-    steps:
-      - name: Check for Online win-linux-cross Runner
-        id: probe
-        shell: pwsh
-        run: |
-          if ("${{ inputs.enable_platform }}" -ne "true") {
-            Write-Host "Platform disabled via input."
-            "available=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-            exit 0
-          }
-
-          $headers = @{ Authorization = "token ${{ secrets.FORGEJO_TOKEN }}" }
-          $response = $null
-          try {
-            $response = Invoke-RestMethod -Uri "${{ github.api_url }}/repos/${{ github.repository }}/actions/runners" -Headers $headers -ErrorAction Stop
-          } catch {
-            try {
-              $response = Invoke-RestMethod -Uri "${{ github.api_url }}/admin/runners" -Headers $headers -ErrorAction Stop
-            } catch {
-              $response = $null
-            }
-          }
-
-          if ($null -ne $response -and $null -ne $response.runners) {
-            $matches = @($response.runners | Where-Object {
-              $_.status -eq "online" -and ($_.labels -contains "win-linux-cross")
-            })
-            if ($matches.Count -gt 0) {
-              Write-Host "Found $($matches.Count) online win-linux-cross runner(s)."
-              "available=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-            } else {
-              Write-Host "No online win-linux-cross runners found. Skipping platform."
-              "available=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-            }
-          } else {
-            Write-Host "Runner API unavailable; running directly on win-linux-cross runner."
-            "available=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
-          }
-
   win-linux-matrix:
     name: 02.01 Win64/Linux Build (UE ${{ matrix.ue_version }})
-    needs: check-runner
-    if: needs.check-runner.outputs.available == 'true'
+    if: ${{ inputs.enable_platform }}
     runs-on: win-linux-cross
     strategy:
       fail-fast: false
@@ -180,7 +135,12 @@ jobs:
         shell: pwsh
         run: |
           $CombinedOut = "${{ github.workspace }}\Packaged\Combined\UE_$env:UE_VERSION\$env:PLUGIN_NAME"
-          if (Test-Path $CombinedOut) { Remove-Item -Path $CombinedOut -Recurse -Force }
+          $WinOut      = "${{ github.workspace }}\Packaged\Win64\UE_$env:UE_VERSION\$env:PLUGIN_NAME"
+          $LinuxOut    = "${{ github.workspace }}\Packaged\Linux\UE_$env:UE_VERSION\$env:PLUGIN_NAME"
+
+          foreach ($dir in @($CombinedOut, $WinOut, $LinuxOut)) {
+            if (Test-Path $dir) { Remove-Item -Path $dir -Recurse -Force }
+          }
 
           & "$env:UE_WIN_PATH\Engine\Build\BatchFiles\RunUAT.bat" BuildPlugin `
             -Plugin="${{ github.workspace }}\$env:PLUGIN_NAME.uplugin" `
@@ -189,12 +149,6 @@ jobs:
             -CreateSubFolder
 
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-
-          $WinOut   = "${{ github.workspace }}\Packaged\Win64\UE_$env:UE_VERSION\$env:PLUGIN_NAME"
-          $LinuxOut = "${{ github.workspace }}\Packaged\Linux\UE_$env:UE_VERSION\$env:PLUGIN_NAME"
-
-          if (Test-Path $WinOut)   { Remove-Item -Path $WinOut -Recurse -Force }
-          if (Test-Path $LinuxOut) { Remove-Item -Path $LinuxOut -Recurse -Force }
 
           New-Item -ItemType Directory -Force -Path $WinOut, $LinuxOut | Out-Null
           Copy-Item -Path "$CombinedOut\*" -Destination $WinOut -Recurse -Force
@@ -211,8 +165,12 @@ jobs:
           $HostDir   = "${{ github.workspace }}\HostProject_UE_$env:UE_VERSION"
           $UProject  = "$HostDir\HostProject.uproject"
           $EditorCmd = "$env:UE_WIN_PATH\Engine\Binaries\Win64\UnrealEditor-Cmd.exe"
+          $ReportDir = "${{ github.workspace }}\TestReports_UE_$env:UE_VERSION"
 
-          if (Test-Path $HostDir) { Remove-Item -Path $HostDir -Recurse -Force }
+          foreach ($dir in @($HostDir, $ReportDir)) {
+            if (Test-Path $dir) { Remove-Item -Path $dir -Recurse -Force }
+          }
+
           New-Item -ItemType Directory -Force -Path "$HostDir\Plugins\$env:PLUGIN_NAME" | Out-Null
           Copy-Item -Path "$WinPkg\*" -Destination "$HostDir\Plugins\$env:PLUGIN_NAME" -Recurse -Force
 
@@ -237,7 +195,7 @@ jobs:
             -ExecCmds="Automation RunTests $env:TESTS_FILTER; Quit" `
             -unattended -nopause -nullrhi -nosplash -nosound -buildmachine `
             -stdout -FullStdOutLogOutput `
-            -ReportOutputPath="${{ github.workspace }}\TestReports_UE_$env:UE_VERSION"
+            -ReportOutputPath="$ReportDir"
 
           $exitCode = $LASTEXITCODE
           if ($exitCode -ne 0) {
@@ -281,12 +239,13 @@ jobs:
     env:
       PLUGIN_NAME: ${{ inputs.plugin_name }}
     steps:
-      - name: Clean Previous Consolidation Staging
+      - name: Clean Consolidation Directories
         if: inputs.upload_artifacts
         shell: pwsh
         run: |
-          if (Test-Path "staged-builds") { Remove-Item -Path "staged-builds" -Recurse -Force }
-          if (Test-Path "final") { Remove-Item -Path "final" -Recurse -Force }
+          foreach ($dir in @("staged-builds", "final")) {
+            if (Test-Path $dir) { Remove-Item -Path $dir -Recurse -Force }
+          }
 
       - name: Download Staged Matrix Builds
         if: inputs.upload_artifacts

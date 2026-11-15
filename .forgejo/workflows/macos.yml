@@ -26,48 +26,9 @@ on:
         default: true
 
 jobs:
-  check-runner:
-    name: 03.00 Check macOS Runner Availability
-    runs-on: ubuntu-latest
-    outputs:
-      available: ${{ steps.probe.outputs.available }}
-    steps:
-      - name: Check for Online macOS Runner
-        id: probe
-        shell: bash
-        run: |
-          if [ "${{ inputs.enable_platform }}" != "true" ]; then
-            echo "macOS platform disabled via input."
-            echo "available=false" >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-
-          RESPONSE=$(curl -s -f -H "Authorization: token ${{ secrets.FORGEJO_TOKEN }}" \
-            "${{ github.api_url }}/repos/${{ github.repository }}/actions/runners" || echo "")
-
-          if [ -z "$RESPONSE" ]; then
-            RESPONSE=$(curl -s -f -H "Authorization: token ${{ secrets.FORGEJO_TOKEN }}" \
-              "${{ github.api_url }}/admin/runners" || echo "")
-          fi
-
-          if [ -n "$RESPONSE" ]; then
-            MATCH=$(echo "$RESPONSE" | jq '[.runners[]? | select(.status == "online" and (.labels[]? | test("mac"; "i")))] | length')
-            if [ "${MATCH:-0}" -gt 0 ]; then
-              echo "Found $MATCH online macOS runner(s)."
-              echo "available=true" >> "$GITHUB_OUTPUT"
-            else
-              echo "No online macOS runners found. Skipping macOS pipeline."
-              echo "available=false" >> "$GITHUB_OUTPUT"
-            fi
-          else
-            echo "Runner API unavailable; skipping macOS by default unless runner is reachable."
-            echo "available=false" >> "$GITHUB_OUTPUT"
-          fi
-
   macos-matrix:
     name: 03.01 macOS Build (UE ${{ matrix.ue_version }})
-    needs: check-runner
-    if: needs.check-runner.outputs.available == 'true'
+    if: ${{ inputs.enable_platform }}
     runs-on: macos
     strategy:
       fail-fast: false
@@ -76,7 +37,7 @@ jobs:
     env:
       PLUGIN_NAME: ${{ inputs.plugin_name }}
       UE_VERSION: ${{ matrix.ue_version }}
-      UE_MAC_PATH: "${{ inputs.ue_mac_base_path }}/UE_${{ matrix.ue_version }}"
+      UE_MAC_PATH: '${{ inputs.ue_mac_base_path }}/UE_${{ matrix.ue_version }}'
       IS_PRIMARY: ${{ matrix.ue_version == inputs.primary_ue_version }}
       TESTS_FILTER: ${{ inputs.tests_filter || inputs.plugin_name }}
     steps:
@@ -104,6 +65,7 @@ jobs:
         shell: bash
         run: |
           MAC_OUT="${{ github.workspace }}/Packaged/Mac/UE_${UE_VERSION}/${PLUGIN_NAME}"
+          rm -rf "$MAC_OUT"
           mkdir -p "$MAC_OUT"
 
           "$UE_MAC_PATH/Engine/Build/BatchFiles/RunUAT.sh" BuildPlugin \
@@ -120,7 +82,9 @@ jobs:
           HOST_DIR="${{ github.workspace }}/HostProject_UE_${UE_VERSION}"
           UPROJECT="$HOST_DIR/HostProject.uproject"
           EDITOR_CMD="$UE_MAC_PATH/Engine/Binaries/Mac/UnrealEditor-Cmd"
+          REPORT_DIR="${{ github.workspace }}/TestReports_UE_${UE_VERSION}"
 
+          rm -rf "$HOST_DIR" "$REPORT_DIR"
           mkdir -p "$HOST_DIR/Plugins/${PLUGIN_NAME}"
           cp -R "$MAC_PKG/"* "$HOST_DIR/Plugins/${PLUGIN_NAME}/"
 
@@ -131,7 +95,7 @@ jobs:
             -ExecCmds="Automation RunTests ${TESTS_FILTER}; Quit" \
             -unattended -nopause -nullrhi -nosplash -nosound -buildmachine \
             -stdout -FullStdOutLogOutput \
-            -ReportOutputPath="${{ github.workspace }}/TestReports_UE_${UE_VERSION}"
+            -ReportOutputPath="$REPORT_DIR"
           EXIT_CODE=$?
           set -e
 
@@ -159,6 +123,11 @@ jobs:
     env:
       PLUGIN_NAME: ${{ inputs.plugin_name }}
     steps:
+      - name: Clean Consolidation Directories
+        if: inputs.upload_artifacts
+        shell: bash
+        run: rm -rf staged-builds final
+
       - name: Download Staged Matrix Builds
         if: inputs.upload_artifacts
         uses: actions/download-artifact@v4
@@ -169,7 +138,7 @@ jobs:
         if: inputs.upload_artifacts
         shell: bash
         run: |
-          for ver in $(echo '${{ inputs.ue_versions }}' | jq -r '.[]'); do
+          for ver in $(echo '${{ inputs.ue_versions }}' | tr -d '[]" ' | tr ',' '\n'); do
             SRC="staged-builds/_staging-Mac-UE-${ver}"
             if [ -d "$SRC" ]; then
               DST="final/Mac/UE_${ver}/${PLUGIN_NAME}"
