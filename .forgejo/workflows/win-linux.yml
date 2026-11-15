@@ -49,7 +49,7 @@ jobs:
         shell: pwsh
         run: |
           $headers = @{ Authorization = "token ${{ secrets.FORGEJO_TOKEN }}"; "Content-Type" = "application/json" }
-          $body = @{ state = "pending"; context = "ci/win-linux"; description = "Building & testing UE ${{ inputs.ue_versions }}..." } | ConvertTo-Json
+          $body = @{ state = "pending"; context = "ci/win-linux"; description = "Building & testing UE ${{ matrix.ue_version }}" } | ConvertTo-Json
           Invoke-RestMethod -Uri "${{ github.api_url }}/repos/${{ github.repository }}/statuses/${{ github.sha }}" -Method Post -Headers $headers -Body $body
 
       - name: Checkout Repository
