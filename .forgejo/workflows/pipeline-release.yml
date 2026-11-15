@@ -12,25 +12,25 @@ on:
 
 env:
   PRIMARY_UE_VERSION: "5.8"
-  UE_VERSIONS: '["5.6", "5.7", "5.8"]'
+  SECONDARY_UE_VERSIONS: '["5.6", "5.7"]'
   PLUGIN_NAME: "Arcana"
   TESTS_FILTER: "Arcana."
   WIN_UE_BASE_PATH: 'D:\DEV\UE5'
   MAC_UE_BASE_PATH: "/Users/Shared/Epic Games"
   OPENCPP_PATH: 'C:\Program Files\OpenCppCoverage\OpenCppCoverage.exe'
-  CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+  CODECOV_TOKEN: \${{ secrets.CODECOV_TOKEN }}
 
 jobs:
   step-1-verify-windows-env:
     name: 01 Verify Environment
     uses: ./.forgejo/workflows/verify-windows-env.yml
 
-  win-linux:
-    name: 02 Build Win64 & Linux (Matrix)
+  win-linux-primary:
+    name: 02a Build & Test Win64/Linux Primary (UE 5.8)
     uses: ./.forgejo/workflows/win-linux.yml
     with:
       plugin_name: Arcana
-      ue_versions: '["5.6", "5.7", "5.8"]'
+      ue_versions: '["5.8"]'
       primary_ue_version: "5.8"
       ue_win_base_path: 'D:\DEV\UE5'
       tests_filter: "Arcana."
@@ -38,60 +38,93 @@ jobs:
       upload_artifacts: true
       enable_platform: true
     secrets:
-      FORGEJO_TOKEN: ${{ secrets.FORGEJO_TOKEN }}
-      CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+      FORGEJO_TOKEN: \${{ secrets.FORGEJO_TOKEN }}
+      CODECOV_TOKEN: \${{ secrets.CODECOV_TOKEN }}
 
-  macos:
-    name: 03 Build macOS (Matrix)
+  win-linux-secondary:
+    name: 02b Build Win64/Linux Secondary (UE 5.6 & 5.7)
+    needs: [ win-linux-primary ]
+    if: \${{ !failure() && !cancelled() }}
+    uses: ./.forgejo/workflows/win-linux.yml
+    with:
+      plugin_name: Arcana
+      ue_versions: '["5.6", "5.7"]'
+      primary_ue_version: "5.8"
+      ue_win_base_path: 'D:\DEV\UE5'
+      tests_filter: "Arcana."
+      run_cook: true
+      upload_artifacts: true
+      enable_platform: true
+    secrets:
+      FORGEJO_TOKEN: \${{ secrets.FORGEJO_TOKEN }}
+      CODECOV_TOKEN: \${{ secrets.CODECOV_TOKEN }}
+
+  macos-primary:
+    name: 03a Build & Test macOS Primary (UE 5.8)
     uses: ./.forgejo/workflows/macos.yml
     with:
       plugin_name: Arcana
-      ue_versions: '["5.6", "5.7", "5.8"]'
+      ue_versions: '["5.8"]'
       primary_ue_version: "5.8"
       ue_mac_base_path: "/Users/Shared/Epic Games"
       tests_filter: "Arcana."
       upload_artifacts: true
       enable_platform: true
     secrets:
-      FORGEJO_TOKEN: ${{ secrets.FORGEJO_TOKEN }}
+      FORGEJO_TOKEN: \${{ secrets.FORGEJO_TOKEN }}
+
+  macos-secondary:
+    name: 03b Build macOS Secondary (UE 5.6 & 5.7)
+    needs: [ macos-primary ]
+    if: \${{ !failure() && !cancelled() }}
+    uses: ./.forgejo/workflows/macos.yml
+    with:
+      plugin_name: Arcana
+      ue_versions: '["5.6", "5.7"]'
+      primary_ue_version: "5.8"
+      ue_mac_base_path: "/Users/Shared/Epic Games"
+      tests_filter: "Arcana."
+      upload_artifacts: true
+      enable_platform: true
+    secrets:
+      FORGEJO_TOKEN: \${{ secrets.FORGEJO_TOKEN }}
 
   step-3-generate-and-publish-documentation:
-    needs: [ win-linux, macos ]
-    if: ${{ !failure() && !cancelled() }}
+    needs: [ win-linux-primary, win-linux-secondary, macos-primary, macos-secondary ]
+    if: \${{ !failure() && !cancelled() }}
     name: 03 Publish Documentation
     uses: ./.forgejo/workflows/publish-doxygen.yml
     secrets: inherit
 
   step-4-publish-wiki:
-    needs: [ win-linux, macos ]
-    if: ${{ !failure() && !cancelled() }}
+    needs: [ win-linux-primary, win-linux-secondary, macos-primary, macos-secondary ]
+    if: \${{ !failure() && !cancelled() }}
     name: 04 Publish Wiki
     uses: ./.forgejo/workflows/publish-wiki.yml
     secrets: inherit
 
   generate-changelog:
-    needs: [ win-linux, macos ]
-    if: ${{ !failure() && !cancelled() }}
+    needs: [ win-linux-primary, win-linux-secondary, macos-primary, macos-secondary ]
+    if: \${{ !failure() && !cancelled() }}
     runs-on: win-linux-cross
     steps:
       - name: Checkout Repository with Full History
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          token: ${{ secrets.FORGEJO_TOKEN }}
+          token: \${{ secrets.FORGEJO_TOKEN }}
 
       - name: Generate CHANGELOG.md from Git History
         shell: pwsh
         run: |
-          $latestTag = git describe --tags --abbrev=0 2>$null
-          $range = if ($latestTag) { "$latestTag..HEAD" } else { "HEAD" }
-          $date = Get-Date -Format "yyyy-MM-dd"
-          $shortSha = git rev-parse --short HEAD
+          \$latestTag = git describe --tags --abbrev=0 2>\(null\)range = if (latestTag) "latestTag..HEAD" } else { "HEAD" }
+          \$date = Get-Date -Format "yyyy-MM-dd"
+          \$shortSha = git rev-parse --short HEAD
 
-          $commits = git log $range --pretty=format:"- %s (%h)" --no-merges
-          if (-not $commits) { $commits = "- Maintenance and build updates ($shortSha)" }
+          commits = git log range --pretty=format:"- %s (%h)" --no-merges
+          if (-not commits) commits = "- Maintenance and build updates (\$shortSha)" }
 
-          $newEntry = "## Release ($date) - $shortSha`n`n$($commits -join "`n")`n`n"
+          \$newEntry = "## Release (date) - shortSha`n`n(commits -join "`n")`n`n"
 
           if (Test-Path "CHANGELOG.md") {
             $existing = Get-Content "CHANGELOG.md" -Raw
@@ -114,7 +147,7 @@ jobs:
           }
 
   finalize-release:
-    needs: [ win-linux, macos, generate-changelog ]
+    needs: [ win-linux-primary, win-linux-secondary, macos-primary, macos-secondary, generate-changelog ]
     if: ${{ !failure() && !cancelled() }}
     runs-on: win-linux-cross
     steps:
@@ -122,6 +155,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           path: release-bundle
+          merge-multiple: true
 
       - name: Verify Consolidated Artifacts
         shell: pwsh
