@@ -79,7 +79,7 @@ jobs:
     env:
       PLUGIN_NAME: ${{ inputs.plugin_name }}
       UE_VERSION: ${{ matrix.ue_version }}
-      UE_WIN_PATH: "${{ inputs.ue_win_base_path }}\UE_${{ matrix.ue_version }}"
+      UE_WIN_PATH: '${{ inputs.ue_win_base_path }}\UE_${{ matrix.ue_version }}'
       IS_PRIMARY: ${{ matrix.ue_version == inputs.primary_ue_version }}
       TESTS_FILTER: ${{ inputs.tests_filter || inputs.plugin_name }}
     steps:
