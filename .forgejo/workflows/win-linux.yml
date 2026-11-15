@@ -59,17 +59,22 @@ jobs:
             color         = $color
           } | ConvertTo-Json -Compress | Out-File -FilePath "$env:TEMP\cppcheck.json" -Encoding utf8
 
-
-
       - name: Run Lizard and generate JSON
         shell: pwsh
         run: |
-          lizard Source/ -C 15 > lizard.txt || true
-          WARNINGS=$(grep -c "warning:" lizard.txt || true)
-          COLOR="brightgreen"
-          [ "$WARNINGS" -gt 0 ] && COLOR="orange"
-          jq -n --arg msg "$WARNINGS high-CCN" --arg col "$COLOR" \
-            '{schemaVersion: 1, label: "complexity", message: $msg, color: $col}' > /tmp/lizard.json
+          lizard Source -C 15 | Out-File -FilePath lizard.txt -Encoding utf8
+          $warnings = (Select-String -Path lizard.txt -Pattern "warning:" | Measure-Object).Count
+          $color = if ($warnings -gt 0) { "orange" } else { "brightgreen" }
+
+          $payload = [ordered]@{
+            schemaVersion = 1
+            label         = "complexity"
+            message       = "$warnings high-CCN"
+            color         = $color
+          }
+
+          $outPath = Join-Path $env:TEMP "lizard.json"
+          $payload | ConvertTo-Json -Compress | Out-File -FilePath $outPath -Encoding utf8
 
       - name: Push JSON to badges branch
         run: |
