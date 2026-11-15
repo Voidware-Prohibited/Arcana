@@ -1,4 +1,5 @@
 name: Dev CI/CD Pipeline
+
 on:
   push:
     branches: [ main, dev ]
@@ -10,11 +11,12 @@ on:
       - 'v*'
 
 env:
-  UE_VERSION: "5.8"
+  PRIMARY_UE_VERSION: "5.8"
+  UE_VERSIONS: '["5.6", "5.7", "5.8"]'
   PLUGIN_NAME: "Arcana"
   TESTS_FILTER: "System.Core"
-  WIN_UE_ROOT: 'D:\DEV\UE5\UE_5.8'
-  MAC_UE_ROOT: "/Users/Shared/Epic Games/UE_5.8"
+  WIN_UE_BASE_PATH: 'D:\DEV\UE5'
+  MAC_UE_BASE_PATH: "/Users/Shared/Epic Games"
   OPENCPP_PATH: 'C:\Program Files\OpenCppCoverage\OpenCppCoverage.exe'
   CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
@@ -24,35 +26,45 @@ jobs:
     uses: ./.forgejo/workflows/verify-windows-env.yml
 
   win-linux:
-    name: 02 Build Windows
+    name: 02 Build Win64 & Linux (Matrix)
     uses: ./.forgejo/workflows/win-linux.yml
     with:
       plugin_name: Arcana
-      ue_win_path: 'D:\DEV\UE5\UE_5.8'
+      ue_versions: '["5.6", "5.7", "5.8"]'
+      primary_ue_version: "5.8"
+      ue_win_base_path: 'D:\DEV\UE5'
+      tests_filter: "System.Core"
       run_cook: true
       upload_artifacts: false
+      enable_platform: true
     secrets:
       FORGEJO_TOKEN: ${{ secrets.FORGEJO_TOKEN }}
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
-  # macos:
-  #   name: 03 Build macOS
-  #   uses: ./.forgejo/workflows/macos.yml
-  #   with:
-  #     plugin_name: Arcana
-  #     ue_mac_path: '/Users/Shared/Epic Games/UE_5.8'
-  #     upload_artifacts: false
-  #   secrets:
-  #     FORGEJO_TOKEN: ${{ secrets.FORGEJO_TOKEN }}
+  macos:
+    name: 03 Build macOS (Matrix)
+    uses: ./.forgejo/workflows/macos.yml
+    with:
+      plugin_name: Arcana
+      ue_versions: '["5.6", "5.7", "5.8"]'
+      primary_ue_version: "5.8"
+      ue_mac_base_path: "/Users/Shared/Epic Games"
+      tests_filter: "System.Core"
+      upload_artifacts: false
+      enable_platform: true
+    secrets:
+      FORGEJO_TOKEN: ${{ secrets.FORGEJO_TOKEN }}
 
   step-3-generate-and-publish-documentation:
-    needs: win-linux
+    needs: [ win-linux, macos ]
+    if: ${{ !failure() && !cancelled() }}
     name: 04 Publish Documentation
     uses: ./.forgejo/workflows/publish-doxygen.yml
     secrets: inherit
 
   step-4-publish-wiki:
-    needs: win-linux
+    needs: [ win-linux, macos ]
+    if: ${{ !failure() && !cancelled() }}
     name: 05 Publish Wiki
     uses: ./.forgejo/workflows/publish-wiki.yml
     secrets: inherit

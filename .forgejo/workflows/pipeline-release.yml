@@ -1,4 +1,5 @@
-name: Dev CI/CD Pipeline
+name: Release CI/CD Pipeline
+
 on:
   push:
     branches: [ stable ]
@@ -10,11 +11,12 @@ on:
       - 'v*'
 
 env:
-  UE_VERSION: "5.8"
+  PRIMARY_UE_VERSION: "5.8"
+  UE_VERSIONS: '["5.6", "5.7", "5.8"]'
   PLUGIN_NAME: "Arcana"
   TESTS_FILTER: "Arcana."
-  WIN_UE_ROOT: 'D:\DEV\UE5\UE_5.8'
-  MAC_UE_ROOT: "/Users/Shared/Epic Games/UE_5.8"
+  WIN_UE_BASE_PATH: 'D:\DEV\UE5'
+  MAC_UE_BASE_PATH: "/Users/Shared/Epic Games"
   OPENCPP_PATH: 'C:\Program Files\OpenCppCoverage\OpenCppCoverage.exe'
   CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
@@ -24,39 +26,52 @@ jobs:
     uses: ./.forgejo/workflows/verify-windows-env.yml
 
   win-linux:
+    name: 02 Build Win64 & Linux (Matrix)
     uses: ./.forgejo/workflows/win-linux.yml
     with:
       plugin_name: Arcana
-      ue_win_path: 'D:\DEV\UE5\UE_5.8'
+      ue_versions: '["5.6", "5.7", "5.8"]'
+      primary_ue_version: "5.8"
+      ue_win_base_path: 'D:\DEV\UE5'
+      tests_filter: "Arcana."
       run_cook: true
-      upload_artifacts: false
+      upload_artifacts: true
+      enable_platform: true
     secrets:
       FORGEJO_TOKEN: ${{ secrets.FORGEJO_TOKEN }}
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
   macos:
+    name: 03 Build macOS (Matrix)
     uses: ./.forgejo/workflows/macos.yml
     with:
       plugin_name: Arcana
-      ue_mac_path: '/Users/Shared/Epic Games/UE_5.8'
-      upload_artifacts: false
+      ue_versions: '["5.6", "5.7", "5.8"]'
+      primary_ue_version: "5.8"
+      ue_mac_base_path: "/Users/Shared/Epic Games"
+      tests_filter: "Arcana."
+      upload_artifacts: true
+      enable_platform: true
     secrets:
       FORGEJO_TOKEN: ${{ secrets.FORGEJO_TOKEN }}
 
   step-3-generate-and-publish-documentation:
-    needs: [ win-linux, macos]
+    needs: [ win-linux, macos ]
+    if: ${{ !failure() && !cancelled() }}
     name: 03 Publish Documentation
     uses: ./.forgejo/workflows/publish-doxygen.yml
-    secrets: inherit 
+    secrets: inherit
 
   step-4-publish-wiki:
-    needs: [ win-linux, macos]
+    needs: [ win-linux, macos ]
+    if: ${{ !failure() && !cancelled() }}
     name: 04 Publish Wiki
     uses: ./.forgejo/workflows/publish-wiki.yml
     secrets: inherit
 
   generate-changelog:
     needs: [ win-linux, macos ]
+    if: ${{ !failure() && !cancelled() }}
     runs-on: win-linux-cross
     steps:
       - name: Checkout Repository with Full History
@@ -73,7 +88,6 @@ jobs:
           $date = Get-Date -Format "yyyy-MM-dd"
           $shortSha = git rev-parse --short HEAD
 
-          # Group Conventional Commits (feat, fix, etc.) or fallback to standard commit list
           $commits = git log $range --pretty=format:"- %s (%h)" --no-merges
           if (-not $commits) { $commits = "- Maintenance and build updates ($shortSha)" }
 
@@ -86,7 +100,6 @@ jobs:
             Set-Content "CHANGELOG.md" ("# Changelog`n`n" + $newEntry)
           }
 
-          # Save isolated release notes for the release bundle
           Set-Content "RELEASE_NOTES.md" $newEntry
 
       - name: Commit & Push Updated CHANGELOG.md
@@ -102,12 +115,19 @@ jobs:
 
   finalize-release:
     needs: [ win-linux, macos, generate-changelog ]
+    if: ${{ !failure() && !cancelled() }}
     runs-on: win-linux-cross
     steps:
-      - name: Download All Platform Artifacts & Changelog
+      - name: Download All Platform Artifacts (Win64, Linux, Mac)
         uses: actions/download-artifact@v4
         with:
           path: release-bundle
+
+      - name: Verify Consolidated Artifacts
+        shell: pwsh
+        run: |
+          Write-Host "Downloaded release artifacts:"
+          Get-ChildItem -Path "release-bundle" -Depth 2
 
       - name: Update Final Release Commit Status
         shell: pwsh

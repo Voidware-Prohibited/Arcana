@@ -1,10 +1,10 @@
-# AGPLv3 Commercial License
+AGPLv3 Commercial License
 
-Copyright (c) 2026 Uriel Ballinas, [VOIDWARE Prohibited](https://voidwarex.com)
+Copyright (c) 2026 Uriel Ballinas, VOIDWARE Prohibited
 
-## Applicability
-
-Companies with >$1M revenue, and/or the following entities and any of their subsidiaries, or any individual performing research on the behalf of the following entities and any of their subsidiaries:
+Applicability: Companies with >$1M revenue, and/or the following entities and
+any of their subsidiaries, or any individual performing research on the behalf of the following entities and
+any of their subsidiaries:
 
 - "Microsoft Corporation"
 - "Palantir Technologies"
@@ -42,16 +42,18 @@ The above listed entities and subsidiaries may purchase a AGPLv3 Commercial Lice
 - A generous donation of at least One Million USD to any one or more of the following organizations: LULAC, ACLU, EFF, IWW.
 - An Annual Licence Fee of One Million USD to the author of this software (Uriel Ballinas)
 
-## GNU AFFERO GENERAL PUBLIC LICENSE
+                   GNU AFFERO GENERAL PUBLIC LICENSE
+                       Version 3, 19 November 2007
 
-Version 3, 19 November 2007
+ Copyright (C) 2007 Free Software Foundation, Inc. <https://fsf.org/>
+ Everyone is permitted to copy and distribute verbatim copies
+ of this license document, but changing it is not allowed.
 
-Copyright (C) 2007 Free Software Foundation, Inc. <https://fsf.org/>
-Everyone is permitted to copy and distribute verbatim copies of this license document, but changing it is not allowed.
+                            Preamble
 
-### Preamble
-
-The GNU Affero General Public License is a free, copyleft license for software and other kinds of works, specifically designed to ensure cooperation with the community in the case of network server software.
+  The GNU Affero General Public License is a free, copyleft license for
+software and other kinds of works, specifically designed to ensure
+cooperation with the community in the case of network server software.
 
   The licenses for most software and other practical works are designed
 to take away your freedom to share and change the works.  By contrast,
@@ -98,7 +100,7 @@ this license.
   The precise terms and conditions for copying, distribution and
 modification follow.
 
-### TERMS AND CONDITIONS
+                       TERMS AND CONDITIONS
 
   0. Definitions.
 
@@ -658,4 +660,4 @@ an absolute waiver of all civil liability in connection with the
 Program, unless a warranty or assumption of liability accompanies a
 copy of the Program in return for a fee.
 
-END OF TERMS AND CONDITIONS
+                     END OF TERMS AND CONDITIONS
