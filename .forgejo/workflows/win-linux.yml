@@ -38,13 +38,17 @@ jobs:
         run: pip install cppcheck && pip install lizard
 
       - name: Run Cppcheck and generate JSON
+        shell: bash
         run: |
           cppcheck --enable=all --suppress=missingIncludeSystem --xml src/ 2> cppcheck.xml || true
           ISSUES=$(grep -c "<error " cppcheck.xml || true)
           COLOR="brightgreen"
-          [ "$ISSUES" -gt 0 ] && COLOR="red"
+          if [ "$ISSUES" -gt 0 ]; then
+            COLOR="red"
+          fi
           jq -n --arg msg "$ISSUES issues" --arg col "$COLOR" \
             '{schemaVersion: 1, label: "cppcheck", message: $msg, color: $col}' > /tmp/cppcheck.json
+
 
       - name: Run Lizard and generate JSON
         run: |
