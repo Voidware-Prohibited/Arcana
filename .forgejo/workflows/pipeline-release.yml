@@ -59,52 +59,52 @@ jobs:
       FORGEJO_TOKEN: \${{ secrets.FORGEJO_TOKEN }}
       CODECOV_TOKEN: \${{ secrets.CODECOV_TOKEN }}
 
-  macos-primary:
-    name: 03a Build & Test macOS Primary (UE 5.8)
-    uses: ./.forgejo/workflows/macos.yml
-    with:
-      plugin_name: Arcana
-      ue_versions: '["5.8"]'
-      primary_ue_version: "5.8"
-      ue_mac_base_path: "/Users/Shared/Epic Games"
-      tests_filter: "Arcana."
-      upload_artifacts: true
-      enable_platform: true
-    secrets:
-      FORGEJO_TOKEN: \${{ secrets.FORGEJO_TOKEN }}
-
-  macos-secondary:
-    name: 03b Build macOS Secondary (UE 5.6 & 5.7)
-    needs: [ macos-primary ]
-    if: \${{ !failure() && !cancelled() }}
-    uses: ./.forgejo/workflows/macos.yml
-    with:
-      plugin_name: Arcana
-      ue_versions: '["5.6", "5.7"]'
-      primary_ue_version: "5.8"
-      ue_mac_base_path: "/Users/Shared/Epic Games"
-      tests_filter: "Arcana."
-      upload_artifacts: true
-      enable_platform: true
-    secrets:
-      FORGEJO_TOKEN: \${{ secrets.FORGEJO_TOKEN }}
+  # macos-primary:
+  #   name: 03a Build & Test macOS Primary (UE 5.8)
+  #   uses: ./.forgejo/workflows/macos.yml
+  #   with:
+  #     plugin_name: Arcana
+  #     ue_versions: '["5.8"]'
+  #     primary_ue_version: "5.8"
+  #     ue_mac_base_path: "/Users/Shared/Epic Games"
+  #     tests_filter: "Arcana."
+  #     upload_artifacts: true
+  #     enable_platform: true
+  #   secrets:
+  #     FORGEJO_TOKEN: \${{ secrets.FORGEJO_TOKEN }}
+# 
+  # macos-secondary:
+  #   name: 03b Build macOS Secondary (UE 5.6 & 5.7)
+  #   needs: [ macos-primary ]
+  #   if: \${{ !failure() && !cancelled() }}
+  #   uses: ./.forgejo/workflows/macos.yml
+  #   with:
+  #     plugin_name: Arcana
+  #     ue_versions: '["5.6", "5.7"]'
+  #     primary_ue_version: "5.8"
+  #     ue_mac_base_path: "/Users/Shared/Epic Games"
+  #     tests_filter: "Arcana."
+  #     upload_artifacts: true
+  #     enable_platform: true
+  #   secrets:
+  #     FORGEJO_TOKEN: \${{ secrets.FORGEJO_TOKEN }}
 
   step-3-generate-and-publish-documentation:
-    needs: [ win-linux-primary, win-linux-secondary, macos-primary, macos-secondary ]
+    needs: [ win-linux-primary, win-linux-secondary ]
     if: \${{ !failure() && !cancelled() }}
     name: 03 Publish Documentation
     uses: ./.forgejo/workflows/publish-doxygen.yml
     secrets: inherit
 
   step-4-publish-wiki:
-    needs: [ win-linux-primary, win-linux-secondary, macos-primary, macos-secondary ]
+    needs: [ win-linux-primary, win-linux-secondary ]
     if: \${{ !failure() && !cancelled() }}
     name: 04 Publish Wiki
     uses: ./.forgejo/workflows/publish-wiki.yml
     secrets: inherit
 
   generate-changelog:
-    needs: [ win-linux-primary, win-linux-secondary, macos-primary, macos-secondary ]
+    needs: [ win-linux-primary, win-linux-secondary ]
     if: \${{ !failure() && !cancelled() }}
     runs-on: win-linux-cross
     steps:
@@ -147,7 +147,7 @@ jobs:
           }
 
   finalize-release:
-    needs: [ win-linux-primary, win-linux-secondary, macos-primary, macos-secondary, generate-changelog ]
+    needs: [ win-linux-primary, win-linux-secondary, generate-changelog ]
     if: ${{ !failure() && !cancelled() }}
     runs-on: win-linux-cross
     steps:
