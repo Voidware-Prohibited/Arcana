@@ -37,35 +37,41 @@ jobs:
     steps:
       - name: Check for Online win-linux-cross Runner
         id: probe
-        shell: bash
+        shell: pwsh
         run: |
-          if [ "${{ inputs.enable_platform }}" != "true" ]; then
-            echo "Platform disabled via input."
-            echo "available=false" >> "$GITHUB_OUTPUT"
+          if ("${{ inputs.enable_platform }}" -ne "true") {
+            Write-Host "Platform disabled via input."
+            "available=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
             exit 0
-          fi
+          }
 
-          RESPONSE=$(curl -s -f -H "Authorization: token ${{ secrets.FORGEJO_TOKEN }}" \
-            "${{ github.api_url }}/repos/${{ github.repository }}/actions/runners" || echo "")
+          $headers = @{ Authorization = "token ${{ secrets.FORGEJO_TOKEN }}" }
+          $response = $null
+          try {
+            $response = Invoke-RestMethod -Uri "${{ github.api_url }}/repos/${{ github.repository }}/actions/runners" -Headers $headers -ErrorAction Stop
+          } catch {
+            try {
+              $response = Invoke-RestMethod -Uri "${{ github.api_url }}/admin/runners" -Headers $headers -ErrorAction Stop
+            } catch {
+              $response = $null
+            }
+          }
 
-          if [ -z "$RESPONSE" ]; then
-            RESPONSE=$(curl -s -f -H "Authorization: token ${{ secrets.FORGEJO_TOKEN }}" \
-              "${{ github.api_url }}/admin/runners" || echo "")
-          fi
-
-          if [ -n "$RESPONSE" ]; then
-            MATCH=$(echo "$RESPONSE" | jq '[.runners[]? | select(.status == "online" and (.labels[]? | . == "win-linux-cross"))] | length')
-            if [ "${MATCH:-0}" -gt 0 ]; then
-              echo "Found $MATCH online win-linux-cross runner(s)."
-              echo "available=true" >> "$GITHUB_OUTPUT"
-            else
-              echo "No online win-linux-cross runners found. Skipping platform."
-              echo "available=false" >> "$GITHUB_OUTPUT"
-            fi
-          else
-            echo "Runner API unavailable; assuming runner is online."
-            echo "available=true" >> "$GITHUB_OUTPUT"
-          fi
+          if ($null -ne $response -and $null -ne $response.runners) {
+            $matches = @($response.runners | Where-Object {
+              $_.status -eq "online" -and ($_.labels -contains "win-linux-cross")
+            })
+            if ($matches.Count -gt 0) {
+              Write-Host "Found $($matches.Count) online win-linux-cross runner(s)."
+              "available=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            } else {
+              Write-Host "No online win-linux-cross runners found. Skipping platform."
+              "available=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+            }
+          } else {
+            Write-Host "Runner API unavailable; running directly on win-linux-cross runner."
+            "available=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Encoding utf8 -Append
+          }
 
   win-linux-matrix:
     name: 02.01 Win64/Linux Build (UE ${{ matrix.ue_version }})
@@ -140,28 +146,42 @@ jobs:
           } | ConvertTo-Json -Compress | Out-File -FilePath "$env:TEMP\lizard.json" -Encoding utf8
 
           $BadgeDir = Join-Path $env:TEMP "badges-worktree"
+          git worktree prune
+          if (Test-Path $BadgeDir) {
+            Remove-Item -Path $BadgeDir -Recurse -Force
+          }
+
           git fetch origin badges
-          git worktree add $BadgeDir badges
+          git worktree add -B badges $BadgeDir origin/badges
+          $pushedLocation = $false
           try {
             Copy-Item -Path "$env:TEMP\cppcheck.json", "$env:TEMP\lizard.json" -Destination $BadgeDir -Force
             Push-Location $BadgeDir
+            $pushedLocation = $true
             git config user.name "forgejo-actions"
             git config user.email "actions@noreply.local"
             git add cppcheck.json lizard.json
             git diff --cached --quiet
             if ($LASTEXITCODE -ne 0) {
               git commit -m "Update quality badges"
-              git push origin badges
+              git push origin HEAD:badges
             }
           } finally {
-            Pop-Location
-            git worktree remove $BadgeDir --force
+            if ($pushedLocation) {
+              Pop-Location
+            }
+            if (Test-Path $BadgeDir) {
+              git worktree remove $BadgeDir --force
+            }
+            git worktree prune
           }
 
       - name: Build & Package Plugin (Win64 & Linux - UE ${{ matrix.ue_version }})
         shell: pwsh
         run: |
           $CombinedOut = "${{ github.workspace }}\Packaged\Combined\UE_$env:UE_VERSION\$env:PLUGIN_NAME"
+          if (Test-Path $CombinedOut) { Remove-Item -Path $CombinedOut -Recurse -Force }
+
           & "$env:UE_WIN_PATH\Engine\Build\BatchFiles\RunUAT.bat" BuildPlugin `
             -Plugin="${{ github.workspace }}\$env:PLUGIN_NAME.uplugin" `
             -Package="$CombinedOut" `
@@ -172,6 +192,9 @@ jobs:
 
           $WinOut   = "${{ github.workspace }}\Packaged\Win64\UE_$env:UE_VERSION\$env:PLUGIN_NAME"
           $LinuxOut = "${{ github.workspace }}\Packaged\Linux\UE_$env:UE_VERSION\$env:PLUGIN_NAME"
+
+          if (Test-Path $WinOut)   { Remove-Item -Path $WinOut -Recurse -Force }
+          if (Test-Path $LinuxOut) { Remove-Item -Path $LinuxOut -Recurse -Force }
 
           New-Item -ItemType Directory -Force -Path $WinOut, $LinuxOut | Out-Null
           Copy-Item -Path "$CombinedOut\*" -Destination $WinOut -Recurse -Force
@@ -189,6 +212,7 @@ jobs:
           $UProject  = "$HostDir\HostProject.uproject"
           $EditorCmd = "$env:UE_WIN_PATH\Engine\Binaries\Win64\UnrealEditor-Cmd.exe"
 
+          if (Test-Path $HostDir) { Remove-Item -Path $HostDir -Recurse -Force }
           New-Item -ItemType Directory -Force -Path "$HostDir\Plugins\$env:PLUGIN_NAME" | Out-Null
           Copy-Item -Path "$WinPkg\*" -Destination "$HostDir\Plugins\$env:PLUGIN_NAME" -Recurse -Force
 
@@ -257,6 +281,13 @@ jobs:
     env:
       PLUGIN_NAME: ${{ inputs.plugin_name }}
     steps:
+      - name: Clean Previous Consolidation Staging
+        if: inputs.upload_artifacts
+        shell: pwsh
+        run: |
+          if (Test-Path "staged-builds") { Remove-Item -Path "staged-builds" -Recurse -Force }
+          if (Test-Path "final") { Remove-Item -Path "final" -Recurse -Force }
+
       - name: Download Staged Matrix Builds
         if: inputs.upload_artifacts
         uses: actions/download-artifact@v4
