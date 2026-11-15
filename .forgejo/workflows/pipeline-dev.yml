@@ -35,15 +35,15 @@ jobs:
       FORGEJO_TOKEN: ${{ secrets.FORGEJO_TOKEN }}
       CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
 
-  macos:
-    name: 03 Build macOS
-    uses: ./.forgejo/workflows/macos.yml
-    with:
-      plugin_name: Arcana
-      ue_mac_path: '/Users/Shared/Epic Games/UE_5.8'
-      upload_artifacts: false
-    secrets:
-      FORGEJO_TOKEN: ${{ secrets.FORGEJO_TOKEN }}
+  # macos:
+  #   name: 03 Build macOS
+  #   uses: ./.forgejo/workflows/macos.yml
+  #   with:
+  #     plugin_name: Arcana
+  #     ue_mac_path: '/Users/Shared/Epic Games/UE_5.8'
+  #     upload_artifacts: false
+  #   secrets:
+  #     FORGEJO_TOKEN: ${{ secrets.FORGEJO_TOKEN }}
 
   step-3-generate-and-publish-documentation:
     needs: win-linux

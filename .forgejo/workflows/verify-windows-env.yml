@@ -53,3 +53,45 @@ jobs:
         run: |
           node -v
           npm -v
+
+      - name: Check for Python 3.12.10
+        run: |
+          $version = (python --version 2>&1).ToString().Trim()
+          if ($version -ne "Python 3.12.10") {
+            Write-Error "Expected 'Python 3.12.10', got '$version'"
+            exit 1
+          }
+          Write-Host "Found: $version"
+
+      - name: Check for Cppcheck
+        run: |
+          if (-not (Get-Command cppcheck -ErrorAction SilentlyContinue)) {
+            Write-Error "cppcheck is not a valid command"
+            exit 1
+          }
+          Write-Host "Found: $(cppcheck --version)"
+
+      - name: Check for Lizard
+        run: |
+          if (-not (Get-Command lizard -ErrorAction SilentlyContinue)) {
+            Write-Error "lizard is not a valid command"
+            exit 1
+          }
+          Write-Host "Found: Lizard $(lizard --version)"
+
+      - name: Check for OpenCppCoverage
+        run: |
+          if (-not (Get-Command OpenCppCoverage -ErrorAction SilentlyContinue)) {
+            Write-Error "OpenCppCoverage is not a valid command"
+            exit 1
+          }
+          Write-Host "Found: OpenCppCoverage"
+
+      - name: Check for Codecov-CLI
+        run: |
+          if (-not (Get-Command codecovcli -ErrorAction SilentlyContinue)) {
+            Write-Error "codecovcli is not a valid command"
+            exit 1
+          }
+          Write-Host "Found: $(codecovcli --version)"
+
