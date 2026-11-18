@@ -28,7 +28,7 @@ jobs:
           git clone --depth=1 https://github.com/jothepro/doxygen-awesome-css.git
 
           # Clone the Voidware DoxygenSharedTemplateFiles repository
-          git clone --depth=1 https://codeberg.org/Voidware-Prohibited/DoxygenSharedTemplateFiles.git
+          git clone --depth=1 https://github.com/Voidware-Prohibited/DoxygenSharedTemplateFiles.git
 
           sed -i "s/__GEN_DATE__/$(date '+%m-%d-%Y %I:%M:%S')/g" DoxygenSharedTemplateFiles/footer.html
 

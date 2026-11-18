@@ -1,3 +1,6 @@
+# This Pipeline Workflow is intended for use in a local cluster of preconfigured containerless host machines. This is to reduce computation and improve the overall speed of the CI/CD/TDD process. 
+# Runners for these workflows are required to be preconfigured and to be run as a containerless Host by appending ":host" to its label. 
+
 name: Dev CI/CD Pipeline
 
 on:

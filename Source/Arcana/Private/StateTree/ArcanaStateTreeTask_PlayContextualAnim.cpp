@@ -20,28 +20,29 @@ EStateTreeRunStatus FArcanaStateTreeTask_PlayContextualAnimTask::EnterState(FSta
 		return EStateTreeRunStatus::Failed;
 	}
 
-	// Modern 5.7 Bindings setup: Construct explicitly from Asset and Section index (0 = Default)
+	// Deprecated 5.7 Bindings setup: Construct explicitly from Asset and Section index (0 = Default)
 	// FContextualAnimSceneBindings TargetBindings(*InstanceData.SceneAsset, 0, 0);
 	
+	// FContextualAnimSceneBindings TargetBindings;
+    // TargetBindings.TryCreateBindings(*InstanceData.SceneAsset.Get(), 0, 0);
+    // 
+    // if (FContextualAnimSceneBindings::TryMakeBindings(*InstanceData.SceneAsset, 0, 0))
+    // {
+    // 	TargetBindings.BindActorToRole(*InstanceData.Interactor, InstanceData.InteractorRole, 0, 0);
+    // 	TargetBindings.BindActorToRole(*InstanceData.SmartObjectActor, InstanceData.SmartObjectRole, 0, 0);
+    // }
+    
+    // Explicitly add your primary context actors to their designated role definitions
+    // TargetBindings.BindActorToRole(*InstanceData.Interactor, InstanceData.InteractorRole, 0, 0);
+    // TargetBindings.BindActorToRole(*InstanceData.SmartObjectActor, InstanceData.SmartObjectRole, 0, 0);
+	
+	// Modern 5.8 Bindings setup:
 	TMap<FName, FContextualAnimSceneBindingContext> BindingContexts;
-	BindingContexts.Add(TEXT("PrimaryRole"), FContextualAnimSceneBindingContext(InstanceData.Interactor));
-	BindingContexts.Add(TEXT("SecondaryRole"), FContextualAnimSceneBindingContext(InstanceData.SmartObjectActor));
+	BindingContexts.Add(TEXT("InteractorRole"), FContextualAnimSceneBindingContext(InstanceData.Interactor));
+	BindingContexts.Add(TEXT("SmartObjectRole"), FContextualAnimSceneBindingContext(InstanceData.SmartObjectActor));
 
 	FContextualAnimSceneBindings TargetBindings;
 	UContextualAnimUtilities::BP_CreateContextualAnimSceneBindings(InstanceData.SceneAsset,	BindingContexts,TargetBindings);
-
-	// FContextualAnimSceneBindings TargetBindings;
-	// TargetBindings.TryCreateBindings(*InstanceData.SceneAsset.Get(), 0, 0);
-	// 
-	// if (FContextualAnimSceneBindings::TryMakeBindings(*InstanceData.SceneAsset, 0, 0))
-	// {
-	// 	TargetBindings.BindActorToRole(*InstanceData.Interactor, InstanceData.InteractorRole, 0, 0);
-	// 	TargetBindings.BindActorToRole(*InstanceData.SmartObjectActor, InstanceData.SmartObjectRole, 0, 0);
-	// }
-    
-	// Explicitly add your primary context actors to their designated role definitions
-	// TargetBindings.BindActorToRole(*InstanceData.Interactor, InstanceData.InteractorRole, 0, 0);
-	// TargetBindings.BindActorToRole(*InstanceData.SmartObjectActor, InstanceData.SmartObjectRole, 0, 0);
 
 	// Start scene execution (Returns bool natively in 5.4+)
 	const bool bSceneStarted = InteractorComp->StartContextualAnimScene(TargetBindings);
