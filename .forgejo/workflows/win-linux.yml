@@ -131,7 +131,7 @@ jobs:
             git worktree prune
           }
 
-      - name: Build & Package Plugin (Win64 & Linux - UE ${{ matrix.ue_version }})
+      - name: "Build & Package Plugin (Win64 & Linux - UE ${{ matrix.ue_version }})"
         shell: pwsh
         run: |
           $CombinedOut = "${{ github.workspace }}\Packaged\Combined\UE_$env:UE_VERSION\$env:PLUGIN_NAME"
@@ -157,7 +157,7 @@ jobs:
           if (Test-Path "$WinOut\Binaries\Linux")   { Remove-Item "$WinOut\Binaries\Linux" -Recurse -Force }
           if (Test-Path "$LinuxOut\Binaries\Win64") { Remove-Item "$LinuxOut\Binaries\Win64" -Recurse -Force }
 
-      - name: Run Automated Tests with OpenCppCoverage (Primary UE ${{ inputs.primary_ue_version }})
+      - name: "Run Automated Tests with OpenCppCoverage (Primary UE ${{ inputs.primary_ue_version }})"
         if: env.IS_PRIMARY == 'true'
         shell: pwsh
         run: |
